@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import { config, isProduction } from './config.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 
@@ -19,6 +20,8 @@ app.use(cookieParser());
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/api/auth', authRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: { message: 'Not found' } });

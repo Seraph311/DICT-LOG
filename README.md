@@ -77,7 +77,8 @@ development only.
 | `reviewer` | reviewer | `Demo#2026` |
 | `admin` | administrator | `Demo#2026` |
 
-Override the shared demo password with `SEED_DEMO_PASSWORD` before seeding.
+Override the shared demo password with `SEED_DEMO_PASSWORD` before seeding. Quote it
+if it contains `#` (dotenv treats an unquoted `#` as a comment).
 
 ## Notes
 
