@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config, isProduction } from './config.js';
 import authRouter from './routes/auth.js';
+import visitorsRouter from './routes/visitors.js';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/visitors', visitorsRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: { message: 'Not found' } });

@@ -14,3 +14,6 @@ export function buildPoolConfig() {
 }
 
 export const pool = new pg.Pool(buildPoolConfig());
+
+// Return DATE columns as plain YYYY-MM-DD strings instead of JS Date objects.
+pg.types.setTypeParser(1082, (value) => value);
