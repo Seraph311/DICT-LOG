@@ -3,13 +3,13 @@ import { useAuth } from './auth/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
-import ReviewerHome from './pages/ReviewerHome.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
 import VisitorLogPage from './pages/VisitorLogPage.jsx';
 
 function Home() {
   const { user } = useAuth();
-  if (user.role === 'reviewer') {
-    return <ReviewerHome />;
+  if (user.role === 'reviewer' || user.role === 'administrator') {
+    return <DashboardPage />;
   }
   return <Navigate to="/visitors" replace />;
 }
@@ -23,6 +23,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute roles={['reviewer', 'administrator']}>
+            <DashboardPage />
           </ProtectedRoute>
         }
       />

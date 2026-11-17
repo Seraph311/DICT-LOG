@@ -28,6 +28,16 @@ export default function Layout({ children }) {
         </Link>
 
         <div className="user-box">
+          {(user?.role === 'reviewer' || user?.role === 'administrator') && (
+            <Link to="/dashboard" className="btn btn-ghost">
+              Dashboard
+            </Link>
+          )}
+          {(user?.role === 'front_desk' || user?.role === 'administrator') && (
+            <Link to="/visitors" className="btn btn-ghost">
+              Visitor log
+            </Link>
+          )}
           <span className="user-name">{user?.full_name}</span>
           <span className="role-badge">{ROLE_LABELS[user?.role] ?? user?.role}</span>
           <button type="button" className="btn btn-ghost" onClick={handleLogout}>
