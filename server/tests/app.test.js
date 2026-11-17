@@ -117,8 +117,11 @@ describe('audit and data integrity', () => {
 
 describe('export privacy', () => {
   it('has a positive control and no personal data', async () => {
+    await pool.query(`INSERT INTO purposes (name, is_other) VALUES ('=HYPERLINK("https://example.com")', false)`);
+    await pool.query(`INSERT INTO visitor_logs (visit_date,name,gender,purpose,contact_number,created_by,source) VALUES ('2026-11-18','Formula Label','Male','=HYPERLINK("https://example.com")','09170000005',2,'staff')`);
     const csv = await request(app).get('/api/export/summary.csv?from=2026-11-01&to=2026-11-30').set('Cookie', users.reviewer).expect(200);
     expect(csv.text).toContain('summary,total');
+    expect(csv.text).toContain("'=HYPERLINK");
     expect(csv.text).not.toMatch(/Maria Dela Cruz|0917\d{7}|@/);
     expect(csv.text).not.toMatch(/^[=+\-@]/m);
   });

@@ -38,7 +38,11 @@ export function parseCsv(text) {
 }
 
 export function rejectionCsv(rows) {
-  const escape = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const escape = (value) => {
+    const raw = String(value ?? '');
+    const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+    return `"${safe.replaceAll('"', '""')}"`;
+  };
   return [
     'row_number,reason',
     ...rows.map((row) => `${row.rowNumber},${escape(row.reason)}`),
