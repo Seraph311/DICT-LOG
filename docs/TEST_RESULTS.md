@@ -6,7 +6,7 @@ Date: 2026-11-18
 
 | Test or script | Result | Evidence |
 | --- | --- | --- |
-| `npm test` | PASS | Isolated PostgreSQL database; 20 Vitest/Supertest tests passed |
+| `npm test` | PASS | Isolated PostgreSQL database; 21 Vitest/Supertest tests passed |
 | Validation cases | PASS | Bad phone, bad email, invalid purpose, office/service mismatch, future date, and honeypot returned 400 |
 | Role matrix | PASS | Anonymous/front_desk/reviewer/administrator statuses verified for dashboard, forecast, CSM summary, exports, visitors, admin, and import |
 | Audit privacy | PASS | Create, edit, void, import, and export rows written; no contact numbers, emails, or passwords in details |
