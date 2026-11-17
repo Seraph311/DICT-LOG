@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import {
   GENDERS,
@@ -34,6 +34,17 @@ export default function VisitorForm({
   const [serverErrors, setServerErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [purposes, setPurposes] = useState(PURPOSES);
+
+  useEffect(() => {
+    api('/api/lookups')
+      .then((data) => setPurposes(data.purposes))
+      .catch(() => {});
+  }, []);
+
+  const purposeOptions = purposes.includes(values.purpose) || !values.purpose
+    ? purposes
+    : [values.purpose, ...purposes];
 
   const errors = validateVisitor(values, { requireDate: isPublic || canEditDate });
 
@@ -192,7 +203,7 @@ export default function VisitorForm({
             aria-describedby={showError('purpose') ? 'purpose-error' : undefined}
           >
             <option value="">Select purpose</option>
-            {PURPOSES.map((purpose) => (
+            {purposeOptions.map((purpose) => (
               <option key={purpose} value={purpose}>
                 {purpose}
               </option>

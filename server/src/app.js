@@ -11,6 +11,7 @@ import forecastRouter from './routes/forecast.js';
 import importRouter from './routes/import.js';
 import exportRouter from './routes/export.js';
 import visitorsRouter from './routes/visitors.js';
+import lookupsRouter from './routes/lookups.js';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/forecast', forecastRouter);
 app.use('/api/import', importRouter);
 app.use('/api/export', exportRouter);
 app.use('/api/visitors', visitorsRouter);
+app.use('/api/lookups', lookupsRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: { message: 'Not found' } });

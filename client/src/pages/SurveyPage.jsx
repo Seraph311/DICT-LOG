@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import TopBar from '../components/TopBar.jsx';
 import {
@@ -16,10 +16,17 @@ const CONFIDENTIALITY =
 
 export default function SurveyPage() {
   const [values, setValues] = useState(emptyCsm);
+  const [lookups, setLookups] = useState({ age_groups: AGE_GROUPS, regions: REGIONS, offices: OFFICES });
   const [errors, setErrors] = useState({});
   const [requestError, setRequestError] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api('/api/lookups')
+      .then((data) => setLookups(data))
+      .catch(() => {});
+  }, []);
 
   function update(field, value) {
     setValues((current) => ({ ...current, [field]: value, ...(field === 'service_type' ? { office: '' } : {}) }));
@@ -60,7 +67,7 @@ export default function SurveyPage() {
     );
   }
 
-  const officeOptions = OFFICES[values.service_type] ?? [];
+  const officeOptions = lookups.offices[values.service_type] ?? [];
 
   return (
     <div className="app">
@@ -94,11 +101,11 @@ export default function SurveyPage() {
               </div>
             ))}
             {[
-              ['age_group', 'Age', AGE_GROUPS],
+              ['age_group', 'Age', lookups.age_groups],
               ['sex', 'Sex', SEXES],
               ['gender', 'Gender', GENDERS],
-              ['region', 'Region', REGIONS],
-              ['service_type', 'Type of service', Object.keys(OFFICES)],
+              ['region', 'Region', lookups.regions],
+              ['service_type', 'Type of service', Object.keys(lookups.offices)],
               ['office', 'Office', officeOptions],
             ].map(([field, label, options]) => (
               <div className="field" key={field}>

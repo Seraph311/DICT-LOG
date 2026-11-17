@@ -25,13 +25,17 @@ const userPatchSchema = z.object({
 });
 const passwordSchema = z.object({ password: z.string().min(8).max(200) });
 const lookupTypeSchema = z.enum(['purposes', 'offices', 'regions']);
-const lookupSchema = z.object({
+const lookupCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   service_type: z
     .enum(['External/Serbisyong Panlabas', 'Internal/Serbisyong Panloob'])
     .optional(),
   active: z.boolean().optional(),
 });
+const lookupPatchSchema = lookupCreateSchema.partial().refine(
+  (data) => Object.keys(data).length > 0,
+  'Provide name or active',
+);
 const auditQuerySchema = z.object({
   action: z.enum(['create', 'edit', 'void', 'import', 'export']).optional(),
   user: z.string().trim().max(50).optional(),
@@ -186,7 +190,7 @@ router.get('/lookups/:type', asyncHandler(async (req, res) => {
 
 router.post('/lookups/:type', asyncHandler(async (req, res) => {
   const type = parseOrThrow(lookupTypeSchema, req.params.type);
-  const data = parseOrThrow(lookupSchema, req.body || {});
+  const data = parseOrThrow(lookupCreateSchema, req.body || {});
   if (type === 'offices' && !data.service_type) {
     throw new HttpError(400, 'service_type is required for offices');
   }
@@ -228,7 +232,7 @@ router.post('/lookups/:type', asyncHandler(async (req, res) => {
 router.patch('/lookups/:type/:id', asyncHandler(async (req, res) => {
   const type = parseOrThrow(lookupTypeSchema, req.params.type);
   const id = parseOrThrow(idSchema, req.params.id);
-  const data = parseOrThrow(lookupSchema, req.body || {});
+  const data = parseOrThrow(lookupPatchSchema, req.body || {});
   if (type === 'offices' && data.service_type) {
     throw new HttpError(400, 'Office service_type cannot be changed');
   }
@@ -243,7 +247,6 @@ router.patch('/lookups/:type/:id', asyncHandler(async (req, res) => {
       sets.push(`${field} = $${values.length}`);
     }
   }
-  if (!sets.length) throw new HttpError(400, 'Provide name or active');
   values.push(id);
   const table = LOOKUPS[type].table;
   const client = await pool.connect();

@@ -39,6 +39,7 @@ async function importRows(req, res, type, file) {
   const rows = validateFile(file);
   const accepted = [];
   const rejected = [];
+  let duplicateCount = 0;
 
   for (const row of rows) {
     const result = type === 'visitors'
@@ -55,14 +56,39 @@ async function importRows(req, res, type, file) {
   try {
     await client.query('BEGIN');
     let inserted = 0;
+    const seen = new Set();
     for (const item of accepted) {
       if (type === 'visitors') {
+        const key = [
+          item.data.visit_date || new Date().toISOString().slice(0, 10),
+          item.data.name.trim().toLowerCase(),
+          item.data.contact_number,
+          item.data.purpose,
+        ].join('|');
+        if (seen.has(key)) {
+          duplicateCount += 1;
+          rejected.push({ rowNumber: item.rowNumber, reason: 'duplicate' });
+          continue;
+        }
+        seen.add(key);
         const purposeResult = await client.query(
           'SELECT 1 FROM purposes WHERE name = $1 AND active = true',
           [item.data.purpose],
         );
         if (!purposeResult.rowCount) {
           rejected.push({ rowNumber: item.rowNumber, reason: 'purpose: Select a valid active purpose' });
+          continue;
+        }
+        const duplicateResult = await client.query(
+          `SELECT 1 FROM visitor_logs
+           WHERE voided = false AND visit_date = $1 AND lower(name) = $2
+             AND contact_number = $3 AND purpose = $4
+           LIMIT 1`,
+          [key.split('|')[0], item.data.name.trim().toLowerCase(), item.data.contact_number, item.data.purpose],
+        );
+        if (duplicateResult.rowCount) {
+          duplicateCount += 1;
+          rejected.push({ rowNumber: item.rowNumber, reason: 'duplicate' });
           continue;
         }
         await client.query(
@@ -80,6 +106,30 @@ async function importRows(req, res, type, file) {
           ],
         );
       } else {
+        const key = [
+          item.data.response_date,
+          item.data.email.trim().toLowerCase(),
+          item.data.service_type,
+          item.data.office,
+        ].join('|');
+        if (seen.has(key)) {
+          duplicateCount += 1;
+          rejected.push({ rowNumber: item.rowNumber, reason: 'duplicate' });
+          continue;
+        }
+        seen.add(key);
+        const duplicateResult = await client.query(
+          `SELECT 1 FROM csm_responses
+           WHERE response_date = $1 AND lower(email) = $2
+             AND service_type = $3 AND office = $4
+           LIMIT 1`,
+          [item.data.response_date, item.data.email.trim().toLowerCase(), item.data.service_type, item.data.office],
+        );
+        if (duplicateResult.rowCount) {
+          duplicateCount += 1;
+          rejected.push({ rowNumber: item.rowNumber, reason: 'duplicate' });
+          continue;
+        }
         await client.query(
           `INSERT INTO csm_responses
              (response_date, email, age_group, sex, gender, region, service_type, office)
@@ -101,17 +151,24 @@ async function importRows(req, res, type, file) {
 
     const { rows: batchRows } = await client.query(
       `INSERT INTO import_batches
-         (filename, uploaded_by, row_count, success_count, error_count, status)
-       VALUES ($1, $2, $3, $4, $5, 'completed')
+         (filename, uploaded_by, row_count, success_count, error_count, duplicate_count, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'completed')
        RETURNING id`,
-      [file.originalname, req.user.id, rows.length, inserted, rejected.length],
+      [file.originalname, req.user.id, rows.length, inserted, rejected.length, duplicateCount],
     );
     await writeAudit(client, {
       actorId: req.user.id,
       action: 'import',
       entity: type === 'visitors' ? 'visitor_logs' : 'csm_responses',
       entityId: batchRows[0].id,
-      details: { type, filename: file.originalname, row_count: rows.length, success_count: inserted, error_count: rejected.length },
+      details: {
+        type,
+        filename: file.originalname,
+        row_count: rows.length,
+        success_count: inserted,
+        error_count: rejected.length,
+        duplicate_count: duplicateCount,
+      },
     });
     await client.query('COMMIT');
 
@@ -121,6 +178,7 @@ async function importRows(req, res, type, file) {
         'X-Import-Row-Count': String(rows.length),
         'X-Import-Accepted': String(inserted),
         'X-Import-Rejected': String(rejected.length),
+        'X-Import-Duplicates': String(duplicateCount),
         'Content-Disposition': `attachment; filename="${type}-rejections.csv"`,
       })
       .type('text/csv')

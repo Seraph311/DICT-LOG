@@ -200,6 +200,7 @@ function ImportPanel() {
       setResult({
         accepted: response.headers.get('X-Import-Accepted'),
         rejected: response.headers.get('X-Import-Rejected'),
+        duplicates: response.headers.get('X-Import-Duplicates'),
         url,
       });
     } catch (err) {
@@ -222,7 +223,7 @@ function ImportPanel() {
       </form>
       {result && (
         <div className="alert alert-success">
-          <span>Accepted: {result.accepted}; rejected: {result.rejected}.</span>
+          <span>Accepted: {result.accepted}; rejected: {result.rejected}; duplicates: {result.duplicates}.</span>
           <a href={result.url} download={`${type}-rejections.csv`}>Download rejection report</a>
         </div>
       )}
