@@ -37,7 +37,7 @@ Client: http://localhost:5173 — API: http://localhost:4000
 
 The public visitor log is the client landing page at `/`. Staff sign in through the
 `Staff Login` button to access the role-based visitor log or dashboard. Public
-visitor submissions use `POST /api/visitors/public`, are rate-limited to 20
+visitor submissions use `POST /api/visitors/public`, are rate-limited to 60
 requests per IP every 15 minutes, and never expose saved records.
 
 ## Database connection
@@ -59,6 +59,8 @@ DATABASE_USER=your_os_user
 ```
 
 `DATABASE_URL` wins when both are set. Without `DATABASE_USER`, the OS user is used.
+`TRUST_PROXY` controls Express proxy handling and should match the deployment
+topology; use `false` when the app is not behind a trusted reverse proxy.
 
 ## Scripts
 
@@ -69,7 +71,19 @@ DATABASE_USER=your_os_user
 | `npm run dev:client` | Vite client only |
 | `npm run migrate` | Apply pending SQL migrations |
 | `npm run seed` | Seed lookups, demo users, and synthetic visitors |
+| `npm test` | Create an isolated temporary PostgreSQL database, run migrations and synthetic seed, execute the Vitest/Supertest suite, then remove the database |
 | `npm run build` | Production build of the client |
+
+Verification scripts:
+
+```bash
+node server/scripts/verify-dashboard.js
+node server/scripts/verify-forecast.js
+node server/scripts/verify-export.js
+```
+
+The verification scripts use the configured development database. The automated
+test suite uses a separate temporary database and never modifies development data.
 
 ## Demo accounts (development only)
 
@@ -92,3 +106,6 @@ if it contains `#` (dotenv treats an unquoted `#` as a comment).
   dashboard or export payloads.
 - Public visitor entries are stored with `source = 'public'`, no staff creator,
   and a privacy-safe create audit record.
+- Login, survey submissions, and public visitor submissions are rate-limited.
+- CSV and PDF exports contain aggregate data only. Spreadsheet-formula prefixes
+  are neutralized in CSV cells.
