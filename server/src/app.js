@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config, isProduction } from './config.js';
 import authRouter from './routes/auth.js';
+import adminRouter from './routes/admin.js';
 import csmRouter from './routes/csm.js';
 import dashboardRouter from './routes/dashboard.js';
 import forecastRouter from './routes/forecast.js';
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/csm', csmRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/forecast', forecastRouter);

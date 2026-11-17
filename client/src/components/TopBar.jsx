@@ -34,6 +34,9 @@ export default function TopBar() {
             <Link to={user.role === 'front_desk' ? '/visitors' : '/dashboard'} className="btn btn-ghost">
               {user.role === 'front_desk' ? 'Visitor log' : 'Dashboard'}
             </Link>
+            {user.role === 'administrator' && (
+              <Link to="/admin" className="btn btn-ghost">Admin</Link>
+            )}
             <button type="button" className="btn btn-ghost" onClick={handleLogout}>
               Log out
             </button>

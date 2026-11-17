@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import AdminPage from './pages/AdminPage.jsx';
 import PublicVisitorPage from './pages/PublicVisitorPage.jsx';
 import SurveyPage from './pages/SurveyPage.jsx';
 import VisitorLogPage from './pages/VisitorLogPage.jsx';
@@ -38,6 +39,14 @@ export default function App() {
         element={
           <ProtectedRoute roles={['reviewer', 'administrator']}>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute roles={['administrator']}>
+            <AdminPage />
           </ProtectedRoute>
         }
       />

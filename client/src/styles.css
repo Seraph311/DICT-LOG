@@ -246,6 +246,52 @@ a {
   grid-column: 1 / -1;
 }
 
+.admin-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.admin-inline-form input,
+.admin-inline-form select,
+.admin-panel select,
+.card > select {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-row strong {
+  min-width: 10rem;
+}
+
+.admin-row .muted {
+  flex: 1;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .dashboard-tabs {
   display: flex;
   gap: 1.25rem;
