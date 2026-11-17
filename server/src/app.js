@@ -6,6 +6,7 @@ import { config, isProduction } from './config.js';
 import authRouter from './routes/auth.js';
 import csmRouter from './routes/csm.js';
 import dashboardRouter from './routes/dashboard.js';
+import forecastRouter from './routes/forecast.js';
 import visitorsRouter from './routes/visitors.js';
 
 const app = express();
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/csm', csmRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/forecast', forecastRouter);
 app.use('/api/visitors', visitorsRouter);
 
 app.use((req, res) => {
