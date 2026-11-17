@@ -356,6 +356,26 @@ a {
   padding: 3rem 1.5rem;
 }
 
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.metrics-table th,
+.metrics-table td {
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.metrics-table th {
+  color: var(--brand-dark);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .empty-panel h2 {
   border: 0;
   padding: 0;

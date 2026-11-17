@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [csmSummary, setCsmSummary] = useState(null);
+  const [forecast, setForecast] = useState(null);
   const [tab, setTab] = useState('visitors');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -86,12 +87,38 @@ export default function DashboardPage() {
       .catch((requestError) => setError(requestError.message));
   }, [tab, csmSummary]);
 
+  useEffect(() => {
+    if (tab !== 'forecast' || forecast) return;
+    api('/api/forecast?granularity=week')
+      .then(setForecast)
+      .catch((requestError) => setError(requestError.message));
+  }, [tab, forecast]);
+
   const hasVisitorData = Boolean(analytics?.byDay.length || analytics?.byPurpose.length);
   const dailyData = useMemo(
     () => (analytics?.byDay ?? []).map((item) => ({ ...item, label: item.day.slice(5) })),
     [analytics],
   );
   const monthlyData = useMemo(() => analytics?.byMonth ?? [], [analytics]);
+  const forecastData = useMemo(() => {
+    if (!forecast) return [];
+    const observed = forecast.observed.map((point) => ({
+      period: point.period,
+      observed: point.count,
+    }));
+    const predicted = forecast.forecast.map((point) => ({
+      period: point.period,
+      forecast: point.count,
+    }));
+    return [...observed, ...predicted]
+      .reduce((points, point) => {
+        const existing = points.find((item) => item.period === point.period);
+        if (existing) Object.assign(existing, point);
+        else points.push({ ...point });
+        return points;
+      }, [])
+      .sort((left, right) => left.period.localeCompare(right.period));
+  }, [forecast]);
 
   function handleMonthChange(event) {
     const nextMonth = event.target.value;
@@ -154,9 +181,73 @@ export default function DashboardPage() {
         >
           CSM summary
         </button>
+        <button
+          type="button"
+          className={`dashboard-tab ${tab === 'forecast' ? 'is-active' : ''}`}
+          role="tab"
+          aria-selected={tab === 'forecast'}
+          onClick={() => setTab('forecast')}
+        >
+          Forecast
+        </button>
       </div>
 
-      {tab === 'csm' ? (
+      {tab === 'forecast' ? (
+        !forecast ? (
+          <div className="center-screen" role="status">
+            <span className="spinner" aria-hidden="true" />
+            Loading forecast…
+          </div>
+        ) : forecast.forecast.length === 0 ? (
+          <section className="card empty-panel">
+            <p className="eyebrow">Forecast unavailable</p>
+            <h2>Not enough history</h2>
+            <p className="muted">{forecast.note}</p>
+          </section>
+        ) : (
+          <>
+            <section className="card chart-card">
+              <div className="chart-heading">
+                <div>
+                  <p className="eyebrow">Visitor outlook</p>
+                  <h2>Weekly forecast</h2>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={340}>
+                <LineChart data={forecastData} margin={{ left: 0, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d7dee9" />
+                  <XAxis dataKey="period" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="observed" name="Observed" stroke="#0b3d91" strokeWidth={3} connectNulls />
+                  <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#c58b00" strokeWidth={3} strokeDasharray="8 5" connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </section>
+            <section className="card">
+              <h2>Forecast accuracy</h2>
+              <table className="metrics-table">
+                <thead>
+                  <tr><th>Model</th><th>MAE</th><th>MAPE</th></tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['Moving average + seasonality', forecast.metrics.model],
+                    ['Naive baseline', forecast.metrics.naive],
+                  ].map(([label, values]) => (
+                    <tr key={label}>
+                      <td>{label}</td>
+                      <td>{values.mae?.toFixed(2) ?? '—'}</td>
+                      <td>{values.mape == null ? '—' : `${values.mape.toFixed(2)}%`}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="hint">Accuracy depends on the amount of history available.</p>
+            </section>
+          </>
+        )
+      ) : tab === 'csm' ? (
         !csmSummary ? (
           <div className="center-screen" role="status">
             <span className="spinner" aria-hidden="true" />
