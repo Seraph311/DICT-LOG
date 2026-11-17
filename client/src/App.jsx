@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import SurveyPage from './pages/SurveyPage.jsx';
 import VisitorLogPage from './pages/VisitorLogPage.jsx';
 
 function Home() {
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/survey" element={<SurveyPage />} />
       <Route
         path="/"
         element={
