@@ -22,7 +22,7 @@ router.get(
            SELECT count(*)::int
            FROM visitor_logs AS today_logs
            WHERE today_logs.voided = false
-             AND today_logs.visit_date = CURRENT_DATE
+             AND today_logs.visit_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date
          ) AS today
        FROM visitor_logs
        WHERE voided = false

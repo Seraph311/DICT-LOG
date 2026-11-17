@@ -125,8 +125,17 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function manilaTodayISO() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
 function buildVisitor(index, createdBy) {
-  const today = new Date();
+  const today = new Date(`${manilaTodayISO()}T00:00:00+08:00`);
   today.setHours(0, 0, 0, 0);
   const start = new Date(today);
   start.setMonth(start.getMonth() - 6);
@@ -137,27 +146,6 @@ function buildVisitor(index, createdBy) {
     date.setDate(date.getDate() - 1);
   }
 
-  function buildCsm(index) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const start = new Date(today);
-    start.setMonth(start.getMonth() - 6);
-    const spanDays = Math.round((today - start) / 86400000);
-    const date = new Date(start.getTime() + randInt(spanDays + 1) * 86400000);
-
-    const serviceType = pick(OFFICES)[1];
-    const officeOptions = OFFICES.filter(([, type]) => type === serviceType);
-    return {
-      responseDate: formatDate(date),
-      email: `synthetic-csm-${index + 1}@example.com`,
-      ageGroup: pick(AGE_GROUPS),
-      sex: pick(['Male', 'Female', 'Prefer not to say']),
-      gender: pick(['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say', 'Other']),
-      region: pick(REGIONS),
-      serviceType,
-      office: pick(officeOptions)[0],
-    };
-  }
   const visitDate = formatDate(date);
 
   const purpose = weightedPurpose();
@@ -178,6 +166,28 @@ function buildVisitor(index, createdBy) {
     createdBy,
     createdAt,
     voided: index % 37 === 0,
+  };
+}
+
+function buildCsm(index) {
+  const today = new Date(`${manilaTodayISO()}T00:00:00+08:00`);
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setMonth(start.getMonth() - 6);
+  const spanDays = Math.round((today - start) / 86400000);
+  const date = new Date(start.getTime() + randInt(spanDays + 1) * 86400000);
+
+  const serviceType = pick(OFFICES)[1];
+  const officeOptions = OFFICES.filter(([, type]) => type === serviceType);
+  return {
+    responseDate: formatDate(date),
+    email: `synthetic-csm-${index + 1}@example.com`,
+    ageGroup: pick(AGE_GROUPS),
+    sex: pick(['Male', 'Female', 'Prefer not to say']),
+    gender: pick(['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say', 'Other']),
+    region: pick(REGIONS),
+    serviceType,
+    office: pick(officeOptions)[0],
   };
 }
 
@@ -271,10 +281,11 @@ async function main() {
     }
 
     const { rows: csmCountRows } = await client.query('SELECT count(*)::int AS count FROM csm_responses');
-    if (csmCountRows[0].count > 0) {
+    const existingCsmCount = csmCountRows[0].count;
+    if (existingCsmCount >= 150) {
       console.log(`CSM responses already present (${csmCountRows[0].count}); skipping CSM seed.`);
     } else {
-      for (let index = 0; index < 150; index += 1) {
+      for (let index = existingCsmCount; index < 150; index += 1) {
         const response = buildCsm(index);
         await client.query(
           `INSERT INTO csm_responses
