@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import TopBar from '../components/TopBar.jsx';
 
 export default function LoginPage() {
   const { user, loading, login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,10 +36,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const loggedInUser = await login(username.trim(), password);
-      navigate(
-        location.state?.from || (loggedInUser.role === 'front_desk' ? '/visitors' : '/dashboard'),
-        { replace: true },
-      );
+      navigate(loggedInUser.role === 'front_desk' ? '/visitors' : '/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
