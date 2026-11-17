@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api.js';
+import TopBar from '../components/TopBar.jsx';
 import {
   AGE_GROUPS,
   emptyCsm,
@@ -45,21 +46,26 @@ export default function SurveyPage() {
 
   if (submitted) {
     return (
-      <main className="survey-shell">
+      <div className="app">
+        <TopBar />
+        <main className="survey-shell">
         <section className="survey-card survey-success" role="status">
           <span className="survey-mark" aria-hidden="true">DICT</span>
           <p className="eyebrow">Response received</p>
           <h1>Thank you for sharing your experience.</h1>
           <p className="muted">Your confidential response helps the office improve its service.</p>
         </section>
-      </main>
+        </main>
+      </div>
     );
   }
 
   const officeOptions = OFFICES[values.service_type] ?? [];
 
   return (
-    <main className="survey-shell">
+    <div className="app">
+      <TopBar />
+      <main className="survey-shell">
       <section className="survey-card">
         <span className="survey-mark" aria-hidden="true">DICT</span>
         <p className="eyebrow">Online Client Satisfaction Measurement</p>
@@ -116,6 +122,7 @@ export default function SurveyPage() {
           </button>
         </form>
       </section>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -4,10 +4,11 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import PublicVisitorPage from './pages/PublicVisitorPage.jsx';
 import SurveyPage from './pages/SurveyPage.jsx';
 import VisitorLogPage from './pages/VisitorLogPage.jsx';
 
-function Home() {
+function StaffHome() {
   const { user } = useAuth();
   if (user.role === 'reviewer' || user.role === 'administrator') {
     return <DashboardPage />;
@@ -22,9 +23,13 @@ export default function App() {
       <Route path="/survey" element={<SurveyPage />} />
       <Route
         path="/"
+        element={<PublicVisitorPage />}
+      />
+      <Route
+        path="/staff"
         element={
           <ProtectedRoute>
-            <Home />
+            <StaffHome />
           </ProtectedRoute>
         }
       />

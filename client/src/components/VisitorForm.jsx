@@ -24,6 +24,7 @@ export default function VisitorForm({
   mode = 'create',
   initial = null,
   canEditDate,
+  public: isPublic = false,
   onSaved,
   onCancel,
 }) {
@@ -34,7 +35,7 @@ export default function VisitorForm({
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const errors = validateVisitor(values, { requireDate: canEditDate });
+  const errors = validateVisitor(values, { requireDate: isPublic || canEditDate });
 
   function showError(field) {
     if (!attempted && !touched[field]) return '';
@@ -69,13 +70,17 @@ export default function VisitorForm({
       contact_number: values.contact_number.trim(),
     };
     if (canEditDate) payload.visit_date = values.visit_date;
+    if (isPublic) payload.website = '';
 
     setSubmitting(true);
     try {
       const data =
         mode === 'edit'
           ? await api(`/api/visitors/${initial.id}`, { method: 'PATCH', body: payload })
-          : await api('/api/visitors', { method: 'POST', body: payload });
+          : await api(isPublic ? '/api/visitors/public' : '/api/visitors', {
+              method: 'POST',
+              body: payload,
+            });
 
       if (mode === 'create') {
         // Blur first so the reset form is not marked as "touched" by a later focus change.
@@ -110,22 +115,26 @@ export default function VisitorForm({
             id="visit_date"
             type="date"
             value={values.visit_date}
-            max={canEditDate ? todayISO() : undefined}
+            max={isPublic || canEditDate ? todayISO() : undefined}
             onChange={(event) => update('visit_date', event.target.value)}
             onBlur={() => markTouched('visit_date')}
-            disabled={!canEditDate}
+            disabled={!canEditDate && !isPublic}
+            readOnly={isPublic}
             aria-invalid={Boolean(showError('visit_date'))}
             aria-describedby={showError('visit_date') ? 'visit_date-error' : undefined}
           />
-          {!canEditDate && (
+          {!canEditDate && !isPublic && (
             <p className="hint">Front desk entries are dated today. Administrators can backdate.</p>
           )}
+          {isPublic && <p className="hint">Date is set automatically to today.</p>}
           {showError('visit_date') && (
             <p className="field-error" id="visit_date-error">
               {showError('visit_date')}
             </p>
           )}
         </div>
+
+        {isPublic && <input type="text" name="website" tabIndex="-1" autoComplete="off" className="honeypot" />}
 
         <div className="field">
           <label htmlFor="name">Name</label>
