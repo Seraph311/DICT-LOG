@@ -29,8 +29,12 @@ router.post(
   '/public',
   publicVisitorLimiter,
   asyncHandler(async (req, res) => {
-    const data = parseOrThrow(publicVisitorSchema, req.body || {});
+    const data = parseOrThrow(publicVisitorSchema, {
+      ...(req.body || {}),
+      visit_date: undefined,
+    });
     const purposeOther = data.purpose === 'Others' ? data.purpose_other : null;
+    await assertPurpose(pool, data.purpose);
     const client = await pool.connect();
 
     try {

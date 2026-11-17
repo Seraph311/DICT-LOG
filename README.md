@@ -35,6 +35,11 @@ npm run dev
 
 Client: http://localhost:5173 — API: http://localhost:4000
 
+The public visitor log is the client landing page at `/`. Staff sign in through the
+`Staff Login` button to access the role-based visitor log or dashboard. Public
+visitor submissions use `POST /api/visitors/public`, are rate-limited to 20
+requests per IP every 15 minutes, and never expose saved records.
+
 ## Database connection
 
 The server supports two connection modes. Pick one in `.env`.
@@ -85,3 +90,5 @@ if it contains `#` (dotenv treats an unquoted `#` as a comment).
 - All seed data is synthetic. Never load real visitor data into this prototype.
 - Emails and contact numbers are stored server-side; they are never included in
   dashboard or export payloads.
+- Public visitor entries are stored with `source = 'public'`, no staff creator,
+  and a privacy-safe create audit record.
