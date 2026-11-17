@@ -238,6 +238,14 @@ a {
   gap: 1rem;
 }
 
+.export-actions {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  grid-column: 1 / -1;
+}
+
 .dashboard-tabs {
   display: flex;
   gap: 1.25rem;

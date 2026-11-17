@@ -119,6 +119,7 @@ export default function DashboardPage() {
       }, [])
       .sort((left, right) => left.period.localeCompare(right.period));
   }, [forecast]);
+  const exportQuery = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
   function handleMonthChange(event) {
     const nextMonth = event.target.value;
@@ -153,6 +154,14 @@ export default function DashboardPage() {
         <div className="field">
           <label htmlFor="dashboard-to">Chart range to</label>
           <input id="dashboard-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+        </div>
+        <div className="export-actions">
+          <a className="btn btn-secondary" href={`/api/export/summary.csv?${exportQuery}`}>
+            Export CSV
+          </a>
+          <a className="btn btn-secondary" href={`/api/export/summary.pdf?${exportQuery}`}>
+            Export PDF
+          </a>
         </div>
       </section>
 
