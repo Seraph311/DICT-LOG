@@ -136,6 +136,28 @@ function buildVisitor(index, createdBy) {
   while (date.getDay() === 0 || date.getDay() === 6) {
     date.setDate(date.getDate() - 1);
   }
+
+  function buildCsm(index) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setMonth(start.getMonth() - 6);
+    const spanDays = Math.round((today - start) / 86400000);
+    const date = new Date(start.getTime() + randInt(spanDays + 1) * 86400000);
+
+    const serviceType = pick(OFFICES)[1];
+    const officeOptions = OFFICES.filter(([, type]) => type === serviceType);
+    return {
+      responseDate: formatDate(date),
+      email: `synthetic-csm-${index + 1}@example.com`,
+      ageGroup: pick(AGE_GROUPS),
+      sex: pick(['Male', 'Female', 'Prefer not to say']),
+      gender: pick(['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say', 'Other']),
+      region: pick(REGIONS),
+      serviceType,
+      office: pick(officeOptions)[0],
+    };
+  }
   const visitDate = formatDate(date);
 
   const purpose = weightedPurpose();
@@ -248,6 +270,31 @@ async function main() {
       console.log('Seeded 300 synthetic visitor logs over the last 6 months.');
     }
 
+    const { rows: csmCountRows } = await client.query('SELECT count(*)::int AS count FROM csm_responses');
+    if (csmCountRows[0].count > 0) {
+      console.log(`CSM responses already present (${csmCountRows[0].count}); skipping CSM seed.`);
+    } else {
+      for (let index = 0; index < 150; index += 1) {
+        const response = buildCsm(index);
+        await client.query(
+          `INSERT INTO csm_responses
+             (response_date, email, age_group, sex, gender, region, service_type, office)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            response.responseDate,
+            response.email,
+            response.ageGroup,
+            response.sex,
+            response.gender,
+            response.region,
+            response.serviceType,
+            response.office,
+          ],
+        );
+      }
+      console.log('Seeded 150 synthetic CSM responses over the last 6 months.');
+    }
+
     await client.query('COMMIT');
 
     const { rows: summary } = await client.query(`
@@ -257,7 +304,8 @@ async function main() {
         (SELECT count(*)::int FROM regions) AS regions,
         (SELECT count(*)::int FROM age_groups) AS age_groups,
         (SELECT count(*)::int FROM users) AS users,
-        (SELECT count(*)::int FROM visitor_logs) AS visitor_logs
+        (SELECT count(*)::int FROM visitor_logs) AS visitor_logs,
+        (SELECT count(*)::int FROM csm_responses) AS csm_responses
     `);
     console.log('Seed complete:', summary[0]);
     console.log('Demo login: frontdesk / reviewer / admin, password from SEED_DEMO_PASSWORD.');

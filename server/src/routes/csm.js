@@ -5,6 +5,7 @@ import { asyncHandler } from '../lib/http-error.js';
 import { parseOrThrow } from '../lib/validate.js';
 import { writeAudit } from '../lib/audit.js';
 import { csmSchema } from '../validation/csm.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -15,6 +16,39 @@ const submitLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: { message: 'Too many survey submissions. Please try again later.' } },
 });
+
+router.get(
+  '/summary',
+  requireAuth,
+  requireRole('reviewer', 'administrator'),
+  asyncHandler(async (req, res) => {
+    const [serviceType, office, ageGroup, region, sex] = await Promise.all([
+      pool.query(
+        'SELECT service_type AS label, count(*)::int AS count FROM csm_responses GROUP BY service_type ORDER BY service_type',
+      ),
+      pool.query(
+        'SELECT office AS label, count(*)::int AS count FROM csm_responses GROUP BY office ORDER BY office',
+      ),
+      pool.query(
+        'SELECT age_group AS label, count(*)::int AS count FROM csm_responses GROUP BY age_group ORDER BY age_group',
+      ),
+      pool.query(
+        'SELECT region AS label, count(*)::int AS count FROM csm_responses GROUP BY region ORDER BY region',
+      ),
+      pool.query(
+        'SELECT sex AS label, count(*)::int AS count FROM csm_responses GROUP BY sex ORDER BY sex',
+      ),
+    ]);
+
+    res.json({
+      byServiceType: serviceType.rows,
+      byOffice: office.rows,
+      byAgeGroup: ageGroup.rows,
+      byRegion: region.rows,
+      bySex: sex.rows,
+    });
+  }),
+);
 
 router.post(
   '/',

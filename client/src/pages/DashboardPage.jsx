@@ -50,6 +50,8 @@ export default function DashboardPage() {
   const [to, setTo] = useState(() => monthEnd(currentMonth()));
   const [summary, setSummary] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [csmSummary, setCsmSummary] = useState(null);
+  const [tab, setTab] = useState('visitors');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -76,6 +78,13 @@ export default function DashboardPage() {
       active = false;
     };
   }, [month, from, to]);
+
+  useEffect(() => {
+    if (tab !== 'csm' || csmSummary) return;
+    api('/api/csm/summary')
+      .then(setCsmSummary)
+      .catch((requestError) => setError(requestError.message));
+  }, [tab, csmSummary]);
 
   const hasVisitorData = Boolean(analytics?.byDay.length || analytics?.byPurpose.length);
   const dailyData = useMemo(
@@ -126,7 +135,57 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {loading ? (
+      <div className="dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+        <button
+          type="button"
+          className={`dashboard-tab ${tab === 'visitors' ? 'is-active' : ''}`}
+          role="tab"
+          aria-selected={tab === 'visitors'}
+          onClick={() => setTab('visitors')}
+        >
+          Visitor activity
+        </button>
+        <button
+          type="button"
+          className={`dashboard-tab ${tab === 'csm' ? 'is-active' : ''}`}
+          role="tab"
+          aria-selected={tab === 'csm'}
+          onClick={() => setTab('csm')}
+        >
+          CSM summary
+        </button>
+      </div>
+
+      {tab === 'csm' ? (
+        !csmSummary ? (
+          <div className="center-screen" role="status">
+            <span className="spinner" aria-hidden="true" />
+            Loading CSM summary…
+          </div>
+        ) : (
+          <div className="csm-summary-grid">
+            {[
+              ['By service type', csmSummary.byServiceType],
+              ['By office', csmSummary.byOffice],
+              ['By age group', csmSummary.byAgeGroup],
+              ['By region', csmSummary.byRegion],
+              ['By sex', csmSummary.bySex],
+            ].map(([title, data]) => (
+              <ChartFrame key={title} title={title} empty={!data.length}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={data} layout="vertical" margin={{ left: 18, right: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d7dee9" />
+                    <XAxis type="number" allowDecimals={false} />
+                    <YAxis dataKey="label" type="category" width={150} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#0b3d91" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartFrame>
+            ))}
+          </div>
+        )
+      ) : loading ? (
         <div className="center-screen" role="status">
           <span className="spinner" aria-hidden="true" />
           Loading dashboard…
