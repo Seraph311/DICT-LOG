@@ -57,8 +57,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-if (isProduction) {
-  app.set('trust proxy', 1);
-}
+app.set('trust proxy', config.trustProxy);
 
 export default app;

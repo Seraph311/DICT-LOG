@@ -13,6 +13,7 @@
     "build": "npm --workspace client run build",
     "migrate": "npm --workspace server run migrate",
     "seed": "npm --workspace server run seed",
+    "test": "npm --workspace server test",
     "start": "npm --workspace server run start"
   },
   "devDependencies": {
