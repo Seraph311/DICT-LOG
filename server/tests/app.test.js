@@ -80,6 +80,16 @@ describe('role matrix', () => {
 });
 
 describe('audit and data integrity', () => {
+  it('supports audit action, user, date, and pagination filters', async () => {
+    const response = await request(app)
+      .get('/api/admin/audit?action=create&user=admin&from=2026-01-01&to=2026-12-31&page=1&pageSize=10')
+      .set('Cookie', users.administrator)
+      .expect(200);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body).toHaveProperty('pagination');
+    expect(response.body.pagination.page).toBe(1);
+  });
+
   it('writes sanitized audit rows for create, edit, void, import, and export', async () => {
     const before = await pool.query(`SELECT action, count(*)::int AS count FROM audit_log GROUP BY action`);
     await request(app).post('/api/visitors').set('Cookie', users.front_desk).send({
