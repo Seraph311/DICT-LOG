@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { pool } from '../db/pool.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, HttpError } from '../lib/http-error.js';
@@ -8,12 +9,65 @@ import {
   createVisitorSchema,
   idSchema,
   listVisitorsSchema,
+  publicVisitorSchema,
   todayISO,
   updateVisitorSchema,
   voidVisitorSchema,
 } from '../validation/visitors.js';
 
 const router = Router();
+
+const publicVisitorLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: { message: 'Too many visitor submissions. Please try again later.' } },
+});
+
+router.post(
+  '/public',
+  publicVisitorLimiter,
+  asyncHandler(async (req, res) => {
+    const data = parseOrThrow(publicVisitorSchema, req.body || {});
+    const purposeOther = data.purpose === 'Others' ? data.purpose_other : null;
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(
+        `INSERT INTO visitor_logs
+           (visit_date, name, gender, purpose, purpose_other, contact_number, created_by, source)
+         VALUES ($1, $2, $3, $4, $5, $6, NULL, 'public')
+         RETURNING id`,
+        [
+          todayISO(),
+          data.name,
+          data.gender,
+          data.purpose,
+          purposeOther,
+          data.contact_number,
+        ],
+      );
+
+      await writeAudit(client, {
+        actorId: null,
+        action: 'create',
+        entity: 'visitor_log',
+        entityId: rows[0].id,
+        details: { source: 'public' },
+      });
+
+      await client.query('COMMIT');
+      res.status(201).json({ ok: true });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }),
+);
 
 router.use(requireAuth, requireRole('front_desk', 'administrator'));
 
@@ -73,8 +127,8 @@ router.post(
       await client.query('BEGIN');
       const { rows } = await client.query(
         `INSERT INTO visitor_logs
-           (visit_date, name, gender, purpose, purpose_other, contact_number, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+           (visit_date, name, gender, purpose, purpose_other, contact_number, created_by, source)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'staff')
          RETURNING *`,
         [
           visitDate,

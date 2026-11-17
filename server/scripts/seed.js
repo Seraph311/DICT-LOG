@@ -262,8 +262,8 @@ async function main() {
         await client.query(
           `INSERT INTO visitor_logs
              (visit_date, name, gender, purpose, purpose_other, contact_number,
-              created_by, created_at, updated_at, voided)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9)`,
+              created_by, created_at, updated_at, voided, source)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9, 'staff')`,
           [
             visitor.visitDate,
             visitor.name,
