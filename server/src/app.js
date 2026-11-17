@@ -8,6 +8,7 @@ import adminRouter from './routes/admin.js';
 import csmRouter from './routes/csm.js';
 import dashboardRouter from './routes/dashboard.js';
 import forecastRouter from './routes/forecast.js';
+import importRouter from './routes/import.js';
 import exportRouter from './routes/export.js';
 import visitorsRouter from './routes/visitors.js';
 
@@ -32,6 +33,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/csm', csmRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/forecast', forecastRouter);
+app.use('/api/import', importRouter);
 app.use('/api/export', exportRouter);
 app.use('/api/visitors', visitorsRouter);
 

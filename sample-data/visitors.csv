@@ -1,0 +1,21 @@
+visit_date,name,gender,purpose,purpose_other,contact_number
+2026-11-01,Maria Dela Cruz,Female,PSA Appointment,,09171234567
+2026-11-02,Jose Reyes,Male,eGovPH app Assistance,,09181234567
+2026-11-03,Ana Santos,Female,NBI Appointment,,09191234567
+2026-11-04,Mark Bautista,Male,SSS assistance,,09201234567
+2026-11-05,Liza Ocampo,Female,Others,PhilHealth inquiry,09211234567
+2026-11-06,Carlo Garcia,Male,PSA Appointment,,09271234567
+2026-11-07,Nicole Mendoza,Female,eGovPH app Assistance,,09351234567
+2026-11-08,Paolo Torres,Male,NBI Appointment,,09451234567
+2026-11-09,Bea Flores,Female,SSS assistance,,09561234567
+2026-11-10,Rafael Ramos,Male,PSA Appointment,,09611234567
+2026-11-11,Grace Villanueva,Female,eGovPH app Assistance,,09751234567
+2026-11-12,Noel Aquino,Male,NBI Appointment,,09951234567
+2026-11-13,Rhea Castillo,Female,SSS assistance,,09171234568
+2026-11-14,Arnel Navarro,Male,PSA Appointment,,09181234568
+2026-11-15,Camille Salazar,Female,eGovPH app Assistance,,09191234568
+2026-11-16,Invalid Phone,Male,PSA Appointment,,123
+2026-11-17,Bad Purpose,Female,Not A Purpose,,09201234568
+2026-11-18,Missing Other,Female,Others,,09211234568
+2026-11-19,Invalid Gender,Unknown,NBI Appointment,,09271234568
+2026-11-20,Future Visitor,Male,SSS assistance,,09351234568

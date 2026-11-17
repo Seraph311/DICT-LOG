@@ -172,12 +172,71 @@ function AuditPanel() {
   );
 }
 
+function ImportPanel() {
+  const [type, setType] = useState('visitors');
+  const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!file) return;
+    setError('');
+    setResult(null);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await fetch(`/api/import/${type}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error?.message || 'Import failed');
+      }
+      const rejectionBlob = await response.blob();
+      const url = URL.createObjectURL(rejectionBlob);
+      setResult({
+        accepted: response.headers.get('X-Import-Accepted'),
+        rejected: response.headers.get('X-Import-Rejected'),
+        url,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2>Legacy import</h2>
+      <p className="muted">CSV only, up to 5 MB. Existing rows are never overwritten.</p>
+      {error && <div className="alert alert-error">{error}</div>}
+      <form className="admin-inline-form" onSubmit={submit}>
+        <select value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="visitors">Visitors</option>
+          <option value="csm">CSM responses</option>
+        </select>
+        <input type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files[0])} />
+        <button className="btn btn-primary" type="submit" disabled={!file}>Import CSV</button>
+      </form>
+      {result && (
+        <div className="alert alert-success">
+          <span>Accepted: {result.accepted}; rejected: {result.rejected}.</span>
+          <a href={result.url} download={`${type}-rejections.csv`}>Download rejection report</a>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function AdminPage() {
   return (
     <Layout>
       <div className="page-heading"><div><p className="eyebrow">Administrator</p><h1>System administration</h1><p className="muted">Manage staff accounts, lookup lists, and audit history.</p></div></div>
       <UserPanel />
       <LookupPanel />
+      <ImportPanel />
       <AuditPanel />
     </Layout>
   );
