@@ -49,6 +49,12 @@ const { rows: people } = await pool.query(
 const { rows: emails } = await pool.query(
   'SELECT email FROM csm_responses ORDER BY id LIMIT 5',
 );
+const { rows: comments } = await pool.query(
+  `SELECT comment FROM csm_responses
+   WHERE btrim(comment) <> ''
+   ORDER BY id
+   LIMIT 40`,
+);
 assert.equal(people.length, 20, 'Expected 20 seeded visitor rows');
 assert.equal(emails.length, 5, 'Expected 5 seeded CSM emails');
 
@@ -85,6 +91,10 @@ assertNoPersonalData(pdfText, names, phones, 'PDF');
 for (const { email } of emails) {
   assert(!csvText.includes(email), `CSV contains seeded CSM email: ${email}`);
   assert(!pdfText.includes(email), `PDF contains seeded CSM email: ${email}`);
+}
+for (const { comment } of comments) {
+  assert(!csvText.includes(comment), 'CSV contains seeded CSM comment text');
+  assert(!pdfText.includes(comment), 'PDF contains seeded CSM comment text');
 }
 
 const frontDeskExport = await fetch(

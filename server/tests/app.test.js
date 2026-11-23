@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
+import { PDFParse } from 'pdf-parse';
 import app from '../src/app.js';
 import { pool } from '../src/db/pool.js';
 
@@ -44,6 +45,71 @@ describe('validation', () => {
     const response = await req;
     expect(response.status).toBe(400);
   });
+
+  it('rejects missing required CSM fields', async () => {
+    const response = await request(app).post('/api/csm').send({
+      response_date: '2026-11-18',
+      email: '',
+      age_group: '',
+      sex: '',
+      gender: '',
+      region: '',
+      service_type: '',
+      office: '',
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it('requires text for Other age and gender choices', async () => {
+    const response = await request(app).post('/api/csm').send({
+      response_date: '2026-11-18',
+      email: 'other@example.com',
+      age_group: 'Other',
+      age_other: '',
+      sex: 'Female',
+      gender: 'Other',
+      gender_other: '',
+      region: 'Bicol Region (Region V)',
+      service_type: 'External/Serbisyong Panlabas',
+      office: 'Cybersecurity Bureau',
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects comments over 1000 characters', async () => {
+    const response = await request(app).post('/api/csm').send({
+      response_date: '2026-11-18',
+      email: 'comment@example.com',
+      age_group: '18-25',
+      sex: 'Female',
+      gender: 'Feminine',
+      region: 'Bicol Region (Region V)',
+      service_type: 'External/Serbisyong Panlabas',
+      office: 'Cybersecurity Bureau',
+      comment: 'x'.repeat(1001),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it('stores an HTML-looking comment as plain text', async () => {
+    const comment = '<script>EXPORT-COMMENT-SECRET</script>';
+    const created = await request(app).post('/api/csm').send({
+      response_date: '2026-11-18',
+      email: 'script-comment@example.com',
+      age_group: '18-25',
+      sex: 'Prefer not to say',
+      gender: 'Prefer Not to Say',
+      region: 'Bicol Region (Region V)',
+      service_type: 'External/Serbisyong Panlabas',
+      office: 'Cybersecurity Bureau',
+      comment,
+    }).expect(201);
+    const listed = await request(app)
+      .get('/api/csm/comments?page=1&pageSize=50')
+      .set('Cookie', users.reviewer)
+      .expect(200);
+    expect(listed.body.data.some((item) => item.comment === comment)).toBe(true);
+  });
 });
 
 describe('role matrix', () => {
@@ -52,6 +118,7 @@ describe('role matrix', () => {
     ['dashboard analytics', 'get', '/api/dashboard/analytics?from=2026-11-01&to=2026-11-30', [401, 403, 200, 200]],
     ['forecast', 'get', '/api/forecast?granularity=week', [401, 403, 200, 200]],
     ['csm summary', 'get', '/api/csm/summary?from=2026-11-01&to=2026-11-30', [401, 403, 200, 200]],
+    ['csm comments', 'get', '/api/csm/comments?page=1&pageSize=10', [401, 403, 200, 200]],
     ['csv export', 'get', '/api/export/summary.csv?from=2026-11-01&to=2026-11-30', [401, 403, 200, 200]],
     ['admin users', 'get', '/api/admin/users', [401, 403, 403, 200]],
     ['admin regions', 'get', '/api/admin/lookups/regions', [401, 403, 403, 200]],
@@ -126,6 +193,34 @@ describe('audit and data integrity', () => {
 });
 
 describe('export privacy', () => {
+  it('excludes CSM comment text and emails from CSV and PDF exports', async () => {
+    const comment = 'EXPORT-COMMENT-SECRET-TEST';
+    await pool.query(
+      `INSERT INTO csm_responses
+       (response_date,email,age_group,sex,gender,region,service_type,office,comment)
+       VALUES ('2026-11-18','export-secret@example.com','18-25','Female','Feminine',
+               'Bicol Region (Region V)','External/Serbisyong Panlabas','Cybersecurity Bureau',$1)`,
+      [comment],
+    );
+    const csv = await request(app)
+      .get('/api/export/summary.csv?from=2026-11-01&to=2026-11-30')
+      .set('Cookie', users.reviewer)
+      .expect(200);
+    const pdf = await request(app)
+      .get('/api/export/summary.pdf?from=2026-11-01&to=2026-11-30')
+      .set('Cookie', users.reviewer)
+      .expect(200);
+    const parser = new PDFParse({ data: Buffer.from(pdf.body) });
+    const parsed = await parser.getText();
+    await parser.destroy();
+    expect(csv.text).not.toContain(comment);
+    expect(parsed.text).not.toContain(comment);
+    expect(csv.text).not.toContain('export-secret@example.com');
+    expect(parsed.text).not.toContain('export-secret@example.com');
+    expect(csv.text).toContain('DICT Camarines Norte - Visitor Summary Report');
+    expect(parsed.text).toContain('DICT Camarines Norte - Visitor Summary Report');
+  });
+
   it('has a positive control and no personal data', async () => {
     await pool.query(`INSERT INTO purposes (name, is_other) VALUES ('=HYPERLINK("https://example.com")', false)`);
     await pool.query(`INSERT INTO visitor_logs (visit_date,name,gender,purpose,contact_number,created_by,source) VALUES ('2026-11-18','Formula Label','Male','=HYPERLINK("https://example.com")','09170000005',2,'staff')`);
