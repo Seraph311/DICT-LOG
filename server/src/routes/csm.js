@@ -85,15 +85,17 @@ router.post(
       await client.query('BEGIN');
       const { rows } = await client.query(
         `INSERT INTO csm_responses
-           (response_date, email, age_group, sex, gender, region, service_type, office)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING id, response_date`,
         [
           data.response_date,
           data.email,
           data.age_group,
+          data.age_group === 'Other' ? data.age_other : null,
           data.sex,
           data.gender,
+          data.gender === 'Other' ? data.gender_other : null,
           data.region,
           data.service_type,
           data.office,

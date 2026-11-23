@@ -33,8 +33,20 @@ export default function SurveyPage() {
   }, []);
 
   function update(field, value) {
-    setValues((current) => ({ ...current, [field]: value, ...(field === 'service_type' ? { office: '' } : {}) }));
-    setErrors((current) => ({ ...current, [field]: undefined, ...(field === 'service_type' ? { office: undefined } : {}) }));
+    setValues((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'service_type' ? { office: '' } : {}),
+      ...(field === 'age_group' && value !== 'Other' ? { age_other: '' } : {}),
+      ...(field === 'gender' && value !== 'Other' ? { gender_other: '' } : {}),
+    }));
+    setErrors((current) => ({
+      ...current,
+      [field]: undefined,
+      ...(field === 'service_type' ? { office: undefined } : {}),
+      ...(field === 'age_group' ? { age_other: undefined } : {}),
+      ...(field === 'gender' ? { gender_other: undefined } : {}),
+    }));
   }
 
   async function handleSubmit(event) {
@@ -134,6 +146,34 @@ export default function SurveyPage() {
                 {errors[field] && <span className="field-error">{errors[field]}</span>}
               </div>
             ))}
+            {values.age_group === 'Other' && (
+              <div className="field field-wide">
+                <label htmlFor="survey-age_other">Please specify age *</label>
+                <input
+                  id="survey-age_other"
+                  type="text"
+                  maxLength={30}
+                  value={values.age_other}
+                  onChange={(event) => update('age_other', event.target.value)}
+                  aria-invalid={Boolean(errors.age_other)}
+                />
+                {errors.age_other && <span className="field-error">{errors.age_other}</span>}
+              </div>
+            )}
+            {values.gender === 'Other' && (
+              <div className="field field-wide">
+                <label htmlFor="survey-gender_other">Please specify gender *</label>
+                <input
+                  id="survey-gender_other"
+                  type="text"
+                  maxLength={50}
+                  value={values.gender_other}
+                  onChange={(event) => update('gender_other', event.target.value)}
+                  aria-invalid={Boolean(errors.gender_other)}
+                />
+                {errors.gender_other && <span className="field-error">{errors.gender_other}</span>}
+              </div>
+            )}
           </div>
           <button type="submit" className="btn btn-primary btn-block" disabled={saving}>
             {saving ? 'Submitting…' : 'Submit response'}

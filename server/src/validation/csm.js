@@ -27,7 +27,7 @@ export const CSM_OFFICES = {
   ],
 };
 
-const AGE_GROUPS = ['18-25', '26-35', '36-45', '46-60', '60 and above (60 pataas)'];
+const AGE_GROUPS = ['18-25', '26-35', '36-45', '46-60', '60 and above (60 pataas)', 'Other'];
 const SEXES = ['Male', 'Female', 'Prefer not to say'];
 const GENDERS = ['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say', 'Other'];
 const REGIONS = [
@@ -64,13 +64,28 @@ export const csmSchema = z
       .refine((value) => value <= new Date().toISOString().slice(0, 10), 'Date cannot be in the future'),
     email: z.string().trim().email('Enter a valid email address').max(254),
     age_group: z.enum(AGE_GROUPS, { error: 'Select a valid age group' }),
+    age_other: z.string().trim().max(30).optional().nullable(),
     sex: z.enum(SEXES, { error: 'Select a valid sex' }),
     gender: z.enum(GENDERS, { error: 'Select a valid gender' }),
+    gender_other: z.string().trim().max(50).optional().nullable(),
     region: z.enum(REGIONS, { error: 'Select a valid region' }),
     service_type: z.enum(CSM_SERVICE_TYPES, { error: 'Select a valid service type' }),
     office: z.string().trim().min(1, 'Select an office'),
+    comment: z.string().trim().max(1000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
+    if (data.age_group === 'Other' && !data.age_other) {
+      ctx.addIssue({ code: 'custom', path: ['age_other'], message: 'Describe your age' });
+    }
+    if (data.age_group !== 'Other' && data.age_other) {
+      ctx.addIssue({ code: 'custom', path: ['age_other'], message: 'Age detail is only allowed for Other' });
+    }
+    if (data.gender === 'Other' && !data.gender_other) {
+      ctx.addIssue({ code: 'custom', path: ['gender_other'], message: 'Describe your gender' });
+    }
+    if (data.gender !== 'Other' && data.gender_other) {
+      ctx.addIssue({ code: 'custom', path: ['gender_other'], message: 'Gender detail is only allowed for Other' });
+    }
     if (!CSM_OFFICES[data.service_type].includes(data.office)) {
       ctx.addIssue({
         code: 'custom',

@@ -1,4 +1,4 @@
-export const AGE_GROUPS = ['18-25', '26-35', '36-45', '46-60', '60 and above (60 pataas)'];
+export const AGE_GROUPS = ['18-25', '26-35', '36-45', '46-60', '60 and above (60 pataas)', 'Other'];
 export const SEXES = ['Male', 'Female', 'Prefer not to say'];
 export const GENDERS = ['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say', 'Other'];
 export const REGIONS = [
@@ -57,6 +57,9 @@ export function emptyCsm() {
     region: '',
     service_type: '',
     office: '',
+    age_other: '',
+    gender_other: '',
+    comment: '',
   };
 }
 
@@ -66,8 +69,12 @@ export function validateCsm(values) {
   if (!values.email?.trim()) errors.email = 'Email is required';
   else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email.trim())) errors.email = 'Enter a valid email';
   if (!AGE_GROUPS.includes(values.age_group)) errors.age_group = 'Select an age group';
+  if (values.age_group === 'Other' && !values.age_other?.trim()) errors.age_other = 'Describe your age';
+  else if (values.age_group === 'Other' && values.age_other.trim().length > 30) errors.age_other = 'Maximum 30 characters';
   if (!SEXES.includes(values.sex)) errors.sex = 'Select a sex';
   if (!GENDERS.includes(values.gender)) errors.gender = 'Select a gender';
+  if (values.gender === 'Other' && !values.gender_other?.trim()) errors.gender_other = 'Describe your gender';
+  else if (values.gender === 'Other' && values.gender_other.trim().length > 50) errors.gender_other = 'Maximum 50 characters';
   if (!REGIONS.includes(values.region)) errors.region = 'Select a region';
   if (!OFFICES[values.service_type]) errors.service_type = 'Select a service type';
   if (!OFFICES[values.service_type]?.includes(values.office)) errors.office = 'Select a matching office';
