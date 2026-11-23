@@ -13,16 +13,14 @@ router.use(requireAuth, requireRole('reviewer', 'administrator'));
 
 async function loadSummary(from, to) {
   const values = [from, to];
-  const [summary, purpose, gender, daily, csmServiceType, csmOffice, csmAgeGroup, csmRegion, csmSex] =
+  const [summary, purpose, gender, daily, csmTotal, csmServiceType, csmOffice, csmAgeGroup, csmRegion, csmSex] =
     await Promise.all([
       pool.query(
         `SELECT
            count(*)::int AS total,
            count(*) FILTER (WHERE gender = 'Male')::int AS male,
            count(*) FILTER (WHERE gender = 'Female')::int AS female,
-           count(*) FILTER (
-             WHERE visit_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Manila')::date
-           )::int AS today
+           count(*) FILTER (WHERE gender = 'Others')::int AS others
          FROM visitor_logs
          WHERE voided = false AND visit_date BETWEEN $1 AND $2`,
         values,
@@ -46,19 +44,38 @@ async function loadSummary(from, to) {
         values,
       ),
       pool.query(
-        'SELECT service_type AS label, count(*)::int AS count FROM csm_responses GROUP BY service_type ORDER BY service_type',
+        'SELECT count(*)::int AS total FROM csm_responses WHERE response_date BETWEEN $1 AND $2',
+        values,
       ),
       pool.query(
-        'SELECT office AS label, count(*)::int AS count FROM csm_responses GROUP BY office ORDER BY office',
+        `SELECT service_type AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY service_type ORDER BY service_type`,
+        values,
       ),
       pool.query(
-        'SELECT age_group AS label, count(*)::int AS count FROM csm_responses GROUP BY age_group ORDER BY age_group',
+        `SELECT office AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY office ORDER BY office`,
+        values,
       ),
       pool.query(
-        'SELECT region AS label, count(*)::int AS count FROM csm_responses GROUP BY region ORDER BY region',
+        `SELECT age_group AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY age_group ORDER BY age_group`,
+        values,
       ),
       pool.query(
-        'SELECT sex AS label, count(*)::int AS count FROM csm_responses GROUP BY sex ORDER BY sex',
+        `SELECT region AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY region ORDER BY region`,
+        values,
+      ),
+      pool.query(
+        `SELECT sex AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY sex ORDER BY sex`,
+        values,
       ),
     ]);
 
@@ -68,6 +85,7 @@ async function loadSummary(from, to) {
     gender: gender.rows,
     daily: daily.rows,
     csm: {
+      total: csmTotal.rows[0].total,
       serviceType: csmServiceType.rows,
       office: csmOffice.rows,
       ageGroup: csmAgeGroup.rows,
@@ -83,25 +101,95 @@ function csvCell(value) {
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-function csvRows(data) {
-  const rows = [['section', 'label', 'count']];
-  rows.push(['summary', 'total', data.summary.total]);
-  rows.push(['summary', 'male', data.summary.male]);
-  rows.push(['summary', 'female', data.summary.female]);
-  rows.push(['summary', 'today', data.summary.today]);
-  for (const [section, items] of [
-    ['purpose', data.purpose],
-    ['gender', data.gender],
-    ['daily', data.daily],
-    ['csm_service_type', data.csm.serviceType],
-    ['csm_office', data.csm.office],
-    ['csm_age_group', data.csm.ageGroup],
-    ['csm_region', data.csm.region],
-    ['csm_sex', data.csm.sex],
-  ]) {
-    for (const item of items) rows.push([section, item.label, item.count]);
+function percent(count, total) {
+  return total === 0 ? '0.0' : ((count / total) * 100).toFixed(1);
+}
+
+function reportText(value) {
+  const text = String(value ?? '');
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+}
+
+function asiaManilaStamp() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const value = (type) => parts.find((part) => part.type === type)?.value;
+  return `${value('year')}-${value('month')}-${value('day')} ${value('hour')}:${value('minute')}:${value('second')} Asia/Manila`;
+}
+
+function dateRange(from, to) {
+  const dates = [];
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  for (const date = new Date(start); date <= end; date.setUTCDate(date.getUTCDate() + 1)) {
+    dates.push(date.toISOString().slice(0, 10));
   }
-  return rows.map((row) => row.map(csvCell).join(',')).join('\n');
+  return dates;
+}
+
+function weekday(date) {
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'long' }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function csvRows(data, from, to) {
+  const rows = [
+    ['DICT Camarines Norte - Visitor Summary Report'],
+    ['Period', `${from} to ${to}`],
+    ['Generated', asiaManilaStamp()],
+    ['Note:', 'Voided records excluded. No personal data included.'],
+    [],
+    ['Visitor totals'],
+    ['Measure', 'Count'],
+    ['Total visitors', data.summary.total],
+    ['Male', data.summary.male],
+    ['Female', data.summary.female],
+    ['Others', data.summary.others],
+    [],
+    ['Visitors by purpose'],
+    ['Purpose', 'Count', 'Percent of total'],
+  ];
+  for (const item of data.purpose) {
+    rows.push([item.label, item.count, percent(item.count, data.summary.total)]);
+  }
+  rows.push([], ['Visitors by gender'], ['Gender', 'Count', 'Percent']);
+  for (const item of data.gender) {
+    rows.push([item.label, item.count, percent(item.count, data.summary.total)]);
+  }
+
+  const dailyByDate = new Map(data.daily.map((item) => [item.label, item.count]));
+  rows.push([], ['Visitors per day'], ['Date', 'Weekday', 'Count']);
+  for (const date of dateRange(from, to)) {
+    rows.push([date, weekday(date), dailyByDate.get(date) ?? 0]);
+  }
+
+  rows.push(
+    [],
+    ['Client satisfaction survey responses (separate from the visitor log)'],
+    ['Responses in period', data.csm.total],
+  );
+  if (data.csm.total === 0) {
+    rows.push(['No survey responses in this period']);
+  } else {
+    for (const [title, items] of [
+      ['Service type', data.csm.serviceType],
+      ['Office', data.csm.office],
+      ['Age group', data.csm.ageGroup],
+      ['Region', data.csm.region],
+      ['Sex', data.csm.sex],
+    ]) {
+      rows.push([], [title], ['Label', 'Responses', 'Percent']);
+      for (const item of items) rows.push([item.label, item.count, percent(item.count, data.csm.total)]);
+    }
+  }
+  return `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
 }
 
 async function auditExport(req, format, from, to) {
@@ -123,7 +211,7 @@ router.get(
     res
       .type('text/csv')
       .attachment(`visitor-summary-${from}-to-${to}.csv`)
-      .send(csvRows(data));
+      .send(csvRows(data, from, to));
   }),
 );
 
@@ -137,31 +225,52 @@ router.get(
     const document = new PDFDocument({ margin: 48 });
     res.type('application/pdf').attachment(`visitor-summary-${from}-to-${to}.pdf`);
     document.pipe(res);
-    document.fontSize(18).text('DICT Camarines Norte Summary Export');
-    document.fontSize(10).fillColor('#52637a').text(`Range: ${from} to ${to}`);
+    document.fontSize(18).text('DICT Camarines Norte - Visitor Summary Report');
+    document.fontSize(10).fillColor('#52637a').text(`Period: ${from} to ${to}`);
+    document.text(`Generated: ${asiaManilaStamp()}`);
+    document.text('Note: Voided records excluded. No personal data included.');
     document.moveDown();
 
-    function section(title, rows) {
+    function section(title, headers, rows) {
       document.fillColor('#0b3d91').fontSize(13).text(title);
       document.fillColor('#152238').fontSize(10);
-      for (const row of rows) document.text(`${row.label}: ${row.count}`);
+      if (headers) document.font('Helvetica-Bold').text(headers.join(', ')).font('Helvetica');
+      for (const row of rows) document.text(row.map(reportText).join(', '));
       document.moveDown(0.7);
     }
 
-    section('Visitor summary', [
-      { label: 'Total', count: data.summary.total },
-      { label: 'Male', count: data.summary.male },
-      { label: 'Female', count: data.summary.female },
-      { label: 'Today', count: data.summary.today },
+    section('Visitor totals', ['Measure', 'Count'], [
+      ['Total visitors', data.summary.total],
+      ['Male', data.summary.male],
+      ['Female', data.summary.female],
+      ['Others', data.summary.others],
     ]);
-    section('Visitors by purpose', data.purpose);
-    section('Visitors by gender', data.gender);
-    section('Daily visitors', data.daily);
-    section('CSM by service type', data.csm.serviceType);
-    section('CSM by office', data.csm.office);
-    section('CSM by age group', data.csm.ageGroup);
-    section('CSM by region', data.csm.region);
-    section('CSM by sex', data.csm.sex);
+    section('Visitors by purpose', ['Purpose', 'Count', 'Percent of total'],
+      data.purpose.map((item) => [item.label, item.count, percent(item.count, data.summary.total)]));
+    section('Visitors by gender', ['Gender', 'Count', 'Percent'],
+      data.gender.map((item) => [item.label, item.count, percent(item.count, data.summary.total)]));
+
+    const dailyByDate = new Map(data.daily.map((item) => [item.label, item.count]));
+    section('Visitors per day', ['Date', 'Weekday', 'Count'],
+      dateRange(from, to).map((date) => [date, weekday(date), dailyByDate.get(date) ?? 0]));
+
+    document.fillColor('#0b3d91').fontSize(13).text('Client satisfaction survey responses (separate from the visitor log)');
+    document.fillColor('#152238').fontSize(10);
+    document.text(`Responses in period, ${data.csm.total}`);
+    if (data.csm.total === 0) {
+      document.text('No survey responses in this period');
+    } else {
+      for (const [title, items] of [
+        ['Service type', data.csm.serviceType],
+        ['Office', data.csm.office],
+        ['Age group', data.csm.ageGroup],
+        ['Region', data.csm.region],
+        ['Sex', data.csm.sex],
+      ]) {
+        section(title, ['Label', 'Responses', 'Percent'],
+          items.map((item) => [item.label, item.count, percent(item.count, data.csm.total)]));
+      }
+    }
     document.end();
   }),
 );
