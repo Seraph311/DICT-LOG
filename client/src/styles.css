@@ -1008,6 +1008,56 @@ a {
   margin-right: auto;
 }
 
+.comment-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.character-count {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.comments-card {
+  margin-top: 1.25rem;
+}
+
+.comments-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.comment-item {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.comment-item .comment-meta {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+}
+
+.comment-item p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
 /* Loading */
 
 .center-screen {

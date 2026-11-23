@@ -182,7 +182,7 @@ function csvRows(data, from, to) {
       ['Service type', data.csm.serviceType],
       ['Office', data.csm.office],
       ['Age group', data.csm.ageGroup],
-      ['Region', data.csm.region],
+      ['Region of residence', data.csm.region],
       ['Sex', data.csm.sex],
     ]) {
       rows.push([], [title], ['Label', 'Responses', 'Percent']);
@@ -264,7 +264,7 @@ router.get(
         ['Service type', data.csm.serviceType],
         ['Office', data.csm.office],
         ['Age group', data.csm.ageGroup],
-        ['Region', data.csm.region],
+        ['Region of residence', data.csm.region],
         ['Sex', data.csm.sex],
       ]) {
         section(title, ['Label', 'Responses', 'Percent'],

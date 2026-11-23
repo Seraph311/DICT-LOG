@@ -52,6 +52,8 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState(null);
   const [csmSummary, setCsmSummary] = useState(null);
   const [forecast, setForecast] = useState(null);
+  const [comments, setComments] = useState(null);
+  const [commentsPage, setCommentsPage] = useState(1);
   const [tab, setTab] = useState('visitors');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -82,10 +84,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (tab !== 'csm') return;
-    api(`/api/csm/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
-      .then(setCsmSummary)
+    Promise.all([
+      api(`/api/csm/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+      api(`/api/csm/comments?page=${commentsPage}&pageSize=10`),
+    ])
+      .then(([summaryData, commentsData]) => {
+        setCsmSummary(summaryData);
+        setComments(commentsData);
+      })
       .catch((requestError) => setError(requestError.message));
-  }, [tab, from, to]);
+  }, [tab, from, to, commentsPage]);
 
   useEffect(() => {
     if (tab !== 'forecast' || forecast) return;
@@ -263,33 +271,80 @@ export default function DashboardPage() {
             Loading CSM summary…
           </div>
         ) : (
-          <div className="csm-summary-grid">
-            {[
-              ['Responses by service type', csmSummary.byServiceType],
-              ['Responses by office', csmSummary.byOffice],
-              ['Responses by age group', csmSummary.byAgeGroup],
-              ['Responses by Region of residence', csmSummary.byRegion],
-              ['Responses by sex', csmSummary.bySex],
-            ].map(([title, data]) => (
-              <ChartFrame
-                key={title}
-                title={title}
-                eyebrow="Client satisfaction"
-                empty={!data.length}
-                emptyText="No survey responses in this period"
-              >
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data} layout="vertical" margin={{ left: 18, right: 16 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d7dee9" />
-                    <XAxis type="number" allowDecimals={false} />
-                    <YAxis dataKey="label" type="category" width={150} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#0b3d91" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartFrame>
-            ))}
-          </div>
+          <>
+            <div className="csm-summary-grid">
+              {[
+                ['Responses by service type', csmSummary.byServiceType],
+                ['Responses by office', csmSummary.byOffice],
+                ['Responses by age group', csmSummary.byAgeGroup],
+                ['Responses by Region of residence', csmSummary.byRegion],
+                ['Responses by sex', csmSummary.bySex],
+              ].map(([title, data]) => (
+                <ChartFrame
+                  key={title}
+                  title={title}
+                  eyebrow="Client satisfaction"
+                  empty={!data.length}
+                  emptyText="No survey responses in this period"
+                >
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={data} layout="vertical" margin={{ left: 18, right: 16 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d7dee9" />
+                      <XAxis type="number" allowDecimals={false} />
+                      <YAxis dataKey="label" type="category" width={150} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="#0b3d91" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartFrame>
+              ))}
+            </div>
+            <section className="card comments-card">
+              <div className="chart-heading">
+                <div>
+                  <p className="eyebrow">Client satisfaction</p>
+                  <h2>Comments</h2>
+                </div>
+              </div>
+              {!comments?.data.length ? (
+                <p className="empty-state">No comments in the available responses.</p>
+              ) : (
+                <div className="comments-list">
+                  {comments.data.map((item, index) => (
+                    <article className="comment-item" key={`${item.date}-${index}`}>
+                      <div className="comment-meta">
+                        <span>{item.date}</span>
+                        <span>{item.service_type}</span>
+                        <span>{item.office}</span>
+                      </div>
+                      <p>{item.comment}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+              {comments?.pagination && (
+                <div className="pagination">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={commentsPage <= 1}
+                    onClick={() => setCommentsPage((page) => page - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>Page {comments.pagination.page} of {Math.max(comments.pagination.totalPages, 1)}</span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={commentsPage >= comments.pagination.totalPages}
+                    onClick={() => setCommentsPage((page) => page + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </section>
+          </>
         )
       ) : loading ? (
         <div className="center-screen" role="status">

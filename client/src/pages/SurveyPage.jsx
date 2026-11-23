@@ -174,6 +174,22 @@ export default function SurveyPage() {
                 {errors.gender_other && <span className="field-error">{errors.gender_other}</span>}
               </div>
             )}
+            <div className="field field-wide">
+              <label htmlFor="survey-comment">Comments or suggestions about the service you received (Mga puna o mungkahi)</label>
+              <textarea
+                id="survey-comment"
+                rows={5}
+                maxLength={1000}
+                value={values.comment}
+                onChange={(event) => update('comment', event.target.value)}
+                aria-invalid={Boolean(errors.comment)}
+              />
+              <div className="comment-meta">
+                <span className="hint">Please do not include your name or contact details.</span>
+                <span className="character-count">{values.comment.length}/1000</span>
+              </div>
+              {errors.comment && <span className="field-error">{errors.comment}</span>}
+            </div>
           </div>
           <button type="submit" className="btn btn-primary btn-block" disabled={saving}>
             {saving ? 'Submitting…' : 'Submit response'}

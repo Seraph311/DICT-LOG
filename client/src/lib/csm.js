@@ -78,5 +78,6 @@ export function validateCsm(values) {
   if (!REGIONS.includes(values.region)) errors.region = 'Select a region';
   if (!OFFICES[values.service_type]) errors.service_type = 'Select a service type';
   if (!OFFICES[values.service_type]?.includes(values.office)) errors.office = 'Select a matching office';
+  if ((values.comment ?? '').length > 1000) errors.comment = 'Maximum 1000 characters';
   return errors;
 }

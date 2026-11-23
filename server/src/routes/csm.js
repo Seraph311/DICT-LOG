@@ -7,6 +7,12 @@ import { writeAudit } from '../lib/audit.js';
 import { csmSchema } from '../validation/csm.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { analyticsSchema } from '../validation/dashboard.js';
+import { z } from 'zod';
+
+const commentsSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
 
 const router = Router();
 
@@ -17,6 +23,40 @@ const submitLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: { message: 'Too many survey submissions. Please try again later.' } },
 });
+
+router.get(
+  '/comments',
+  requireAuth,
+  requireRole('reviewer', 'administrator'),
+  asyncHandler(async (req, res) => {
+    const { page, pageSize } = parseOrThrow(commentsSchema, req.query);
+    const offset = (page - 1) * pageSize;
+    const [count, rows] = await Promise.all([
+      pool.query(
+        `SELECT count(*)::int AS total
+         FROM csm_responses
+         WHERE btrim(comment) <> ''`,
+      ),
+      pool.query(
+        `SELECT response_date::text AS date, service_type, office, comment
+         FROM csm_responses
+         WHERE btrim(comment) <> ''
+         ORDER BY response_date DESC, id DESC
+         LIMIT $1 OFFSET $2`,
+        [pageSize, offset],
+      ),
+    ]);
+    res.json({
+      data: rows.rows,
+      pagination: {
+        page,
+        pageSize,
+        total: count.rows[0].total,
+        totalPages: Math.ceil(count.rows[0].total / pageSize),
+      },
+    });
+  }),
+);
 
 router.get(
   '/summary',
@@ -85,8 +125,8 @@ router.post(
       await client.query('BEGIN');
       const { rows } = await client.query(
         `INSERT INTO csm_responses
-           (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING id, response_date`,
         [
           data.response_date,
@@ -99,6 +139,7 @@ router.post(
           data.region,
           data.service_type,
           data.office,
+          data.comment || null,
         ],
       );
 
