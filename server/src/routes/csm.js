@@ -65,7 +65,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const { from, to } = parseOrThrow(analyticsSchema, req.query);
     const values = [from, to];
-    const [total, serviceType, office, ageGroup, region, sex] = await Promise.all([
+    const [total, serviceType, office, ageGroup, region, sex, gender] = await Promise.all([
       pool.query(
         'SELECT count(*)::int AS total FROM csm_responses WHERE response_date BETWEEN $1 AND $2',
         values,
@@ -100,6 +100,12 @@ router.get(
          GROUP BY sex ORDER BY sex`,
         values,
       ),
+      pool.query(
+        `SELECT gender AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY gender ORDER BY gender`,
+        values,
+      ),
     ]);
 
     res.json({
@@ -111,6 +117,7 @@ router.get(
       byAgeGroup: ageGroup.rows,
       byRegion: region.rows,
       bySex: sex.rows,
+      byGender: gender.rows,
     });
   }),
 );

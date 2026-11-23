@@ -132,14 +132,16 @@ async function importRows(req, res, type, file) {
         }
         await client.query(
           `INSERT INTO csm_responses
-             (response_date, email, age_group, sex, gender, region, service_type, office)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+             (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             item.data.response_date,
             item.data.email,
             item.data.age_group,
+            item.data.age_group === 'Other' ? item.data.age_other : null,
             item.data.sex,
             item.data.gender,
+            item.data.gender === 'Other' ? item.data.gender_other : null,
             item.data.region,
             item.data.service_type,
             item.data.office,
