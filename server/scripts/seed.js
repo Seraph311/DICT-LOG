@@ -55,7 +55,50 @@ const REGIONS = [
   'BARMM',
 ];
 
-const AGE_GROUPS = ['18-25', '26-35', '36-45', '46-60', '60 and above (60 pataas)'];
+const AGE_GROUPS = ['18-25', '26-35', '36-45', '46-60', '60 and above (60 pataas)', 'Other'];
+
+const CSM_COMMENTS = [
+  'Mas mabilis at maayos ang proseso.',
+  'Mabait at malinaw ang pagtulong ng tauhan.',
+  'Naging simple ang aking transaksyon.',
+  'Salamat sa mabilis na serbisyo.',
+  'Malaking tulong ang gabay ng staff.',
+  'Maayos ang pila at sakyan.',
+  'Maganda ang serbisyo ng opisina.',
+  'Mabilis ang sagot sa aking tanong.',
+  'Kaaya-aya ang serbisyo.',
+  'Nais kong purihin ang staff.',
+  'Malinaw ang mga tagubilin.',
+  'Mabilis at propesyonal ang pagtugon.',
+  'May sapat na impormasyon.',
+  'Masaya ang aking karanasan.',
+  'Magalang at handang tumulong.',
+  'Kumpleto ang tulong na natanggap.',
+  'Maayos ang sistema ng appointment.',
+  'Mabilis ang pagproseso.',
+  'Matulunging tauhan.',
+  'Nakatulong ang digital na serbisyo.',
+  'Malinis at maayos na opisina.',
+  'Mas madaling maunawaan ang proseso.',
+  'Makatotohanang serbisyo.',
+  'Walang habambuhay na paghihintay.',
+  'Naging episyente ang transaksyon.',
+  'Mabuting komunikasyon.',
+  'Nakapagbigay ng tamang gabay.',
+  'Maayos ang pag-aasikaso.',
+  'Naging maginhawa ang pagbisita.',
+  'Lubos na nagpapasalamat.',
+  'Mabilis ang pagkumpleto.',
+  'Mabagal lamang sa unang pila.',
+  'Mas gusto ang malinaw na signage.',
+  'Mas magiging maayos kung may dagdag na upuan.',
+  'Ang staff ay madaling lapitan.',
+  'Kaunting oras ang paghihintay.',
+  'Maayos ang follow-up.',
+  'Nakakatulong ang mga panuto.',
+  'Mas malinaw ang proseso sa susunod.',
+  'Naging positibo ang karanasan.',
+];
 
 const DEMO_USERS = [
   { username: 'frontdesk', fullName: 'Faye Frontdesk', role: 'front_desk' },
@@ -179,15 +222,20 @@ function buildCsm(index) {
 
   const serviceType = pick(OFFICES)[1];
   const officeOptions = OFFICES.filter(([, type]) => type === serviceType);
+  const ageGroup = index % 67 === 0 ? 'Other' : pick(AGE_GROUPS.filter((label) => label !== 'Other'));
+  const gender = index % 71 === 0 ? 'Other' : pick(['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say']);
   return {
     responseDate: formatDate(date),
     email: `synthetic-csm-${index + 1}@example.com`,
-    ageGroup: pick(AGE_GROUPS),
+    ageGroup,
+    ageOther: ageGroup === 'Other' ? 'Retired client' : null,
     sex: pick(['Male', 'Female', 'Prefer not to say']),
-    gender: pick(['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say', 'Other']),
+    gender,
+    genderOther: gender === 'Other' ? 'Custom identity' : null,
     region: pick(REGIONS),
     serviceType,
     office: pick(officeOptions)[0],
+    comment: index < CSM_COMMENTS.length ? CSM_COMMENTS[index] : null,
   };
 }
 
@@ -289,21 +337,54 @@ async function main() {
         const response = buildCsm(index);
         await client.query(
           `INSERT INTO csm_responses
-             (response_date, email, age_group, sex, gender, region, service_type, office)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+             (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
             response.responseDate,
             response.email,
             response.ageGroup,
+            response.ageOther,
             response.sex,
             response.gender,
+            response.genderOther,
             response.region,
             response.serviceType,
             response.office,
+            response.comment,
           ],
         );
       }
       console.log('Seeded 150 synthetic CSM responses over the last 6 months.');
+    }
+
+    const { rows: commentRows } = await client.query(
+      `SELECT id FROM csm_responses ORDER BY id LIMIT 40`,
+    );
+    for (const [index, row] of commentRows.entries()) {
+      await client.query(
+        'UPDATE csm_responses SET comment=$1 WHERE id=$2',
+        [CSM_COMMENTS[index], row.id],
+      );
+    }
+
+    const { rows: otherRows } = await client.query(
+      `SELECT id FROM csm_responses ORDER BY id LIMIT 3`,
+    );
+    if (otherRows.length) {
+      await client.query(
+        `UPDATE csm_responses
+         SET age_group='Other', age_other='Retired client'
+         WHERE id=$1`,
+        [otherRows[0].id],
+      );
+    }
+    if (otherRows.length > 1) {
+      await client.query(
+        `UPDATE csm_responses
+         SET gender='Other', gender_other='Custom identity'
+         WHERE id=$1`,
+        [otherRows[1].id],
+      );
     }
 
     await client.query('COMMIT');
