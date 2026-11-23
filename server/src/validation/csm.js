@@ -80,13 +80,13 @@ export const csmSchema = z
     if (data.age_group === 'Other' && !data.age_other) {
       ctx.addIssue({ code: 'custom', path: ['age_other'], message: 'Describe your age' });
     }
-    if (data.age_group !== 'Other' && data.age_other) {
+    if (data.age_group !== 'Other' && data.age_other?.trim()) {
       ctx.addIssue({ code: 'custom', path: ['age_other'], message: 'Age detail is only allowed for Other' });
     }
     if (data.gender === 'Other' && !data.gender_other) {
       ctx.addIssue({ code: 'custom', path: ['gender_other'], message: 'Describe your gender' });
     }
-    if (data.gender !== 'Other' && data.gender_other) {
+    if (data.gender !== 'Other' && data.gender_other?.trim()) {
       ctx.addIssue({ code: 'custom', path: ['gender_other'], message: 'Gender detail is only allowed for Other' });
     }
     if (!CSM_OFFICES[data.service_type].includes(data.office)) {
