@@ -226,7 +226,6 @@ function buildCsm(index) {
   const gender = index % 71 === 0 ? 'Other' : pick(['Masculine', 'Feminine', 'Non-Binary', 'Prefer Not to Say']);
   return {
     responseDate: formatDate(date),
-    email: `synthetic-csm-${index + 1}@example.com`,
     ageGroup,
     ageOther: ageGroup === 'Other' ? 'Retired client' : null,
     sex: pick(['Male', 'Female', 'Prefer not to say']),
@@ -337,11 +336,10 @@ async function main() {
         const response = buildCsm(index);
         await client.query(
           `INSERT INTO csm_responses
-             (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+             (response_date, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             response.responseDate,
-            response.email,
             response.ageGroup,
             response.ageOther,
             response.sex,

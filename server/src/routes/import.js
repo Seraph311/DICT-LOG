@@ -108,9 +108,15 @@ async function importRows(req, res, type, file) {
       } else {
         const key = [
           item.data.response_date,
-          item.data.email.trim().toLowerCase(),
+          item.data.age_group.trim().toLowerCase(),
+          (item.data.age_other || '').trim().toLowerCase(),
+          item.data.sex.trim().toLowerCase(),
+          item.data.gender.trim().toLowerCase(),
+          (item.data.gender_other || '').trim().toLowerCase(),
+          item.data.region.trim().toLowerCase(),
           item.data.service_type,
           item.data.office,
+          (item.data.comment || '').trim().toLowerCase(),
         ].join('|');
         if (seen.has(key)) {
           duplicateCount += 1;
@@ -120,10 +126,29 @@ async function importRows(req, res, type, file) {
         seen.add(key);
         const duplicateResult = await client.query(
           `SELECT 1 FROM csm_responses
-           WHERE response_date = $1 AND lower(email) = $2
-             AND service_type = $3 AND office = $4
+           WHERE response_date = $1
+             AND lower(btrim(age_group)) = lower(btrim($2))
+             AND lower(btrim(COALESCE(age_other, ''))) = lower(btrim(COALESCE($3, '')))
+             AND lower(btrim(sex)) = lower(btrim($4))
+             AND lower(btrim(gender)) = lower(btrim($5))
+             AND lower(btrim(COALESCE(gender_other, ''))) = lower(btrim(COALESCE($6, '')))
+             AND lower(btrim(region)) = lower(btrim($7))
+             AND lower(btrim(service_type)) = lower(btrim($8))
+             AND lower(btrim(office)) = lower(btrim($9))
+             AND lower(btrim(COALESCE(comment, ''))) = lower(btrim(COALESCE($10, '')))
            LIMIT 1`,
-          [item.data.response_date, item.data.email.trim().toLowerCase(), item.data.service_type, item.data.office],
+          [
+            item.data.response_date,
+            item.data.age_group,
+            item.data.age_other,
+            item.data.sex,
+            item.data.gender,
+            item.data.gender_other,
+            item.data.region,
+            item.data.service_type,
+            item.data.office,
+            item.data.comment,
+          ],
         );
         if (duplicateResult.rowCount) {
           duplicateCount += 1;
@@ -132,11 +157,10 @@ async function importRows(req, res, type, file) {
         }
         await client.query(
           `INSERT INTO csm_responses
-             (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office)
+             (response_date, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             item.data.response_date,
-            item.data.email,
             item.data.age_group,
             item.data.age_group === 'Other' ? item.data.age_other : null,
             item.data.sex,
@@ -145,6 +169,7 @@ async function importRows(req, res, type, file) {
             item.data.region,
             item.data.service_type,
             item.data.office,
+            item.data.comment || null,
           ],
         );
       }
