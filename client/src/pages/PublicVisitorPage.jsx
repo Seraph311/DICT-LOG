@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout.jsx';
 import VisitorForm from '../components/VisitorForm.jsx';
 
@@ -16,9 +17,14 @@ export default function PublicVisitorPage() {
       </div>
 
       {notice && (
-        <div className="alert alert-success" role="status">
-          {notice}
-        </div>
+        <>
+          <div className="alert alert-success" role="status">
+            {notice}
+          </div>
+          <Link to="/survey" className="btn btn-primary">
+            Answer our short client satisfaction survey
+          </Link>
+        </>
       )}
 
       <section className="card narrow-card">

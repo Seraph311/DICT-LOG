@@ -27,6 +27,9 @@ export default function TopBar() {
       </Link>
 
       <div className="user-box">
+        <Link to="/survey" className="btn btn-ghost">
+          Client Satisfaction Survey
+        </Link>
         {user ? (
           <>
             <span className="user-name">{user.full_name}</span>
