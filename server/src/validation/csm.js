@@ -62,7 +62,6 @@ export const csmSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
       .refine(isRealDate, 'Invalid date')
       .refine((value) => value <= new Date().toISOString().slice(0, 10), 'Date cannot be in the future'),
-    email: z.string().trim().email('Enter a valid email address').max(254),
     age_group: z.enum(AGE_GROUPS, { error: 'Select a valid age group' }),
     age_other: z.string().trim().max(30).optional().nullable(),
     sex: z.enum(SEXES, { error: 'Select a valid sex' }),
@@ -72,8 +71,12 @@ export const csmSchema = z
     service_type: z.enum(CSM_SERVICE_TYPES, { error: 'Select a valid service type' }),
     office: z.string().trim().min(1, 'Select an office'),
     comment: z.string().trim().max(1000).optional().nullable(),
+    website: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.website) {
+      ctx.addIssue({ code: 'custom', path: ['website'], message: 'Bot submission rejected' });
+    }
     if (data.age_group === 'Other' && !data.age_other) {
       ctx.addIssue({ code: 'custom', path: ['age_other'], message: 'Describe your age' });
     }

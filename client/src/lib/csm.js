@@ -50,7 +50,6 @@ export function todayISO() {
 export function emptyCsm() {
   return {
     response_date: todayISO(),
-    email: '',
     age_group: '',
     sex: '',
     gender: '',
@@ -60,14 +59,13 @@ export function emptyCsm() {
     age_other: '',
     gender_other: '',
     comment: '',
+    website: '',
   };
 }
 
 export function validateCsm(values) {
   const errors = {};
   if (!values.response_date) errors.response_date = 'Date is required';
-  if (!values.email?.trim()) errors.email = 'Email is required';
-  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email.trim())) errors.email = 'Enter a valid email';
   if (!AGE_GROUPS.includes(values.age_group)) errors.age_group = 'Select an age group';
   if (values.age_group === 'Other' && !values.age_other?.trim()) errors.age_other = 'Describe your age';
   else if (values.age_group === 'Other' && values.age_other.trim().length > 30) errors.age_other = 'Maximum 30 characters';

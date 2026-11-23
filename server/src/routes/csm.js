@@ -132,12 +132,11 @@ router.post(
       await client.query('BEGIN');
       const { rows } = await client.query(
         `INSERT INTO csm_responses
-           (response_date, email, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           (response_date, age_group, age_other, sex, gender, gender_other, region, service_type, office, comment)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING id, response_date`,
         [
           data.response_date,
-          data.email,
           data.age_group,
           data.age_group === 'Other' ? data.age_other : null,
           data.sex,

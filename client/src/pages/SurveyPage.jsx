@@ -105,7 +105,6 @@ export default function SurveyPage() {
         <form className="survey-form" onSubmit={handleSubmit} noValidate>
           <div className="form-grid">
             {[
-              ['email', 'Email *', 'email', 'you@example.com'],
               ['response_date', 'Date (Petsa) *', 'date', undefined],
             ].map(([field, label, type, placeholder]) => (
               <div className="field" key={field}>
@@ -121,6 +120,10 @@ export default function SurveyPage() {
                 {errors[field] && <span className="field-error">{errors[field]}</span>}
               </div>
             ))}
+            <input type="text" name="website" tabIndex="-1" autoComplete="off" className="honeypot"
+              value={values.website ?? ''}
+              onChange={(event) => update('website', event.target.value)}
+            />
             {[
               ['age_group', 'Age (Edad) *', lookups.age_groups],
               ['sex', 'Sex (Kasariang bayolohikal) *', SEXES],
