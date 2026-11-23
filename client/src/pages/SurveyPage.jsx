@@ -13,6 +13,10 @@ import {
 
 const CONFIDENTIALITY =
   'This Client Satisfaction Measurement (CSM) survey aims to track the client experience of government offices. Your answers will enable this office to provide a better service. For privacy and security, rest assured that all the information that you will share shall remain confidential.';
+const FILIPINO_CONFIDENTIALITY =
+  '(Ang Client Satisfaction Measurement (CSM) ay naglalayong masubaybayan ang karanasan ng taumbayan hinggil sa kanilang pakikitransaksyon sa mga tanggapan ng gobyerno. Makatutulong ang inyong kasagutan ukol sa inyong naging karanasan sa katatapos lamang na transaksyon, na mas mapabuti at lalong mapaglingkuran ang aming serbisyo publiko. Ang personal na impormasyon na iyong ibabahagi ay mananatiling kumpidensyal.)';
+const CONTACT_POINTS =
+  'Anti-Red Tape Authority (ARTA) - 8478-5099 / complaints@arta.gov.ph; Presidential Action Center (PACe) - 8888; CSE Contact Center ng Bayan - 1-6565 / email@contactcenterngbayan.gov.ph';
 
 export default function SurveyPage() {
   const [values, setValues] = useState(emptyCsm);
@@ -77,15 +81,20 @@ export default function SurveyPage() {
         <span className="survey-mark" aria-hidden="true">DICT</span>
         <p className="eyebrow">Online Client Satisfaction Measurement</p>
         <h1>Tell us about your service experience</h1>
-        <p className="survey-intro">{CONFIDENTIALITY}</p>
+        <div className="survey-intro">
+          <p>{CONFIDENTIALITY}</p>
+          <p>{FILIPINO_CONFIDENTIALITY}</p>
+          <p className="survey-contact">{CONTACT_POINTS}</p>
+          <p className="required-note">* Indicates required question</p>
+        </div>
 
         {requestError && <div className="alert alert-error" role="alert">{requestError}</div>}
 
         <form className="survey-form" onSubmit={handleSubmit} noValidate>
           <div className="form-grid">
             {[
-              ['email', 'Email', 'email', 'you@example.com'],
-              ['response_date', 'Date', 'date', undefined],
+              ['email', 'Email *', 'email', 'you@example.com'],
+              ['response_date', 'Date (Petsa) *', 'date', undefined],
             ].map(([field, label, type, placeholder]) => (
               <div className="field" key={field}>
                 <label htmlFor={`survey-${field}`}>{label}</label>
@@ -101,12 +110,14 @@ export default function SurveyPage() {
               </div>
             ))}
             {[
-              ['age_group', 'Age', lookups.age_groups],
-              ['sex', 'Sex', SEXES],
-              ['gender', 'Gender', GENDERS],
-              ['region', 'Region', lookups.regions],
-              ['service_type', 'Type of service', Object.keys(lookups.offices)],
-              ['office', 'Office', officeOptions],
+              ['age_group', 'Age (Edad) *', lookups.age_groups],
+              ['sex', 'Sex (Kasariang bayolohikal) *', SEXES],
+              ['gender', 'Gender (Kasarian) *', GENDERS],
+              ['region', 'Region of residence (Rehiyon ng Tirahan) *', lookups.regions],
+              ['service_type', 'Type of Service (Uri ng Serbisyo) *', Object.keys(lookups.offices)],
+              ['office', values.service_type === 'External/Serbisyong Panlabas'
+                ? 'Office visited/concerned (Opisinang katransaksyon) *'
+                : 'Office visited/concerned *', officeOptions],
             ].map(([field, label, options]) => (
               <div className="field" key={field}>
                 <label htmlFor={`survey-${field}`}>{label}</label>

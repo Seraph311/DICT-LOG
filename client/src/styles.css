@@ -978,6 +978,21 @@ a {
   color: var(--muted);
 }
 
+.survey-intro p {
+  margin: 0 0 0.75rem;
+}
+
+.survey-contact {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.required-note {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brand-dark);
+}
+
 .survey-form {
   display: flex;
   flex-direction: column;

@@ -268,7 +268,7 @@ export default function DashboardPage() {
               ['Responses by service type', csmSummary.byServiceType],
               ['Responses by office', csmSummary.byOffice],
               ['Responses by age group', csmSummary.byAgeGroup],
-              ['Responses by region', csmSummary.byRegion],
+              ['Responses by Region of residence', csmSummary.byRegion],
               ['Responses by sex', csmSummary.bySex],
             ].map(([title, data]) => (
               <ChartFrame
