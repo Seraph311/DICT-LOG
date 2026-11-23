@@ -51,7 +51,7 @@ describe('role matrix', () => {
     ['dashboard summary', 'get', '/api/dashboard/summary?month=2026-11', [401, 403, 200, 200]],
     ['dashboard analytics', 'get', '/api/dashboard/analytics?from=2026-11-01&to=2026-11-30', [401, 403, 200, 200]],
     ['forecast', 'get', '/api/forecast?granularity=week', [401, 403, 200, 200]],
-    ['csm summary', 'get', '/api/csm/summary', [401, 403, 200, 200]],
+    ['csm summary', 'get', '/api/csm/summary?from=2026-11-01&to=2026-11-30', [401, 403, 200, 200]],
     ['csv export', 'get', '/api/export/summary.csv?from=2026-11-01&to=2026-11-30', [401, 403, 200, 200]],
     ['admin users', 'get', '/api/admin/users', [401, 403, 403, 200]],
     ['admin regions', 'get', '/api/admin/lookups/regions', [401, 403, 403, 200]],
@@ -130,9 +130,48 @@ describe('export privacy', () => {
     await pool.query(`INSERT INTO purposes (name, is_other) VALUES ('=HYPERLINK("https://example.com")', false)`);
     await pool.query(`INSERT INTO visitor_logs (visit_date,name,gender,purpose,contact_number,created_by,source) VALUES ('2026-11-18','Formula Label','Male','=HYPERLINK("https://example.com")','09170000005',2,'staff')`);
     const csv = await request(app).get('/api/export/summary.csv?from=2026-11-01&to=2026-11-30').set('Cookie', users.reviewer).expect(200);
-    expect(csv.text).toContain('summary,total');
+    expect(csv.text).toContain('Visitor totals');
+    expect(csv.text).toContain('DICT Camarines Norte - Visitor Summary Report');
+    expect(csv.text).toContain('Period,2026-11-01 to 2026-11-30');
     expect(csv.text).toContain("'=HYPERLINK");
     expect(csv.text).not.toMatch(/Maria Dela Cruz|0917\d{7}|@/);
     expect(csv.text).not.toMatch(/^[=+\-@]/m);
+  });
+
+  it('includes one row for every date in the period', async () => {
+    const csv = await request(app).get('/api/export/summary.csv?from=2026-11-01&to=2026-11-30').set('Cookie', users.reviewer).expect(200);
+    const lines = csv.text.replace(/^\uFEFF/, '').split(/\r?\n/);
+    const headerIndex = lines.indexOf('Date,Weekday,Count');
+    expect(headerIndex).toBeGreaterThan(-1);
+    const dailyRows = lines.slice(headerIndex + 1).filter((line) => /^\d{4}-\d{2}-\d{2},/.test(line));
+    expect(dailyRows).toHaveLength(30);
+    expect(dailyRows[0]).toMatch(/^2026-11-01,Sunday,/);
+    expect(dailyRows[29]).toMatch(/^2026-11-30,Monday,/);
+  });
+
+  it('matches CSM export counts to independent SQL counts', async () => {
+    const independent = await pool.query(
+      `SELECT count(*)::int AS total
+       FROM csm_responses
+       WHERE response_date BETWEEN '2026-11-01' AND '2026-11-30'`,
+    );
+    const csv = await request(app).get('/api/export/summary.csv?from=2026-11-01&to=2026-11-30').set('Cookie', users.reviewer).expect(200);
+    expect(csv.text).toContain(`Responses in period,${independent.rows[0].total}`);
+  });
+
+  it('matches CSM dashboard counts to the same date range', async () => {
+    const independent = await pool.query(
+      `SELECT count(*)::int AS total
+       FROM csm_responses
+       WHERE response_date BETWEEN '2026-11-01' AND '2026-11-30'`,
+    );
+    const response = await request(app).get('/api/csm/summary?from=2026-11-01&to=2026-11-30').set('Cookie', users.reviewer).expect(200);
+    expect(response.body.total).toBe(independent.rows[0].total);
+  });
+
+  it('prints the no-responses message for a period without CSM records', async () => {
+    const csv = await request(app).get('/api/export/summary.csv?from=1999-01-01&to=1999-01-31').set('Cookie', users.reviewer).expect(200);
+    expect(csv.text).toContain('Responses in period,0');
+    expect(csv.text).toContain('No survey responses in this period');
   });
 });

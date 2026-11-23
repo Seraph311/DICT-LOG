@@ -35,8 +35,8 @@ async function fetchExport(cookie, path) {
 
 const reviewerCookie = await login('reviewer', config.seedDemoPassword);
 const frontDeskCookie = await login('frontdesk', config.seedDemoPassword);
-const from = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-const to = new Date().toISOString().slice(0, 10);
+const from = '2026-11-01';
+const to = '2026-11-30';
 const query = `from=${from}&to=${to}`;
 
 const { rows: people } = await pool.query(
@@ -67,9 +67,16 @@ const pdfResult = await pdfParser.getText();
 await pdfParser.destroy();
 const pdfText = pdfResult.text;
 
-assert(csvText.includes('summary,total'), 'CSV positive control missing summary heading');
+assert(csvBytes.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf])), 'CSV is missing UTF-8 BOM');
+assert(csvText.includes('DICT Camarines Norte - Visitor Summary Report'), 'CSV positive control missing report title');
+assert(csvText.includes('Visitor totals'), 'CSV positive control missing Visitor totals section');
+assert(csvText.includes('Period,2026-11-01 to 2026-11-30'), 'CSV positive control missing period');
+assert(!csvText.includes(',Today,'), 'CSV unexpectedly contains Today export row');
 assert(pdfText.trim().length > 0, 'PDF extraction returned empty text');
-assert(pdfText.includes('Total'), 'PDF positive control missing Total heading');
+assert(pdfText.includes('DICT Camarines Norte - Visitor Summary Report'), 'PDF positive control missing report title');
+assert(pdfText.includes('Visitor totals'), 'PDF positive control missing Visitor totals heading');
+assert(pdfText.includes('Period: 2026-11-01 to 2026-11-30'), 'PDF positive control missing period');
+assert(pdfText.includes('Client satisfaction survey responses (separate from the visitor log)'), 'PDF positive control missing CSM section');
 
 const names = people.map((row) => row.name);
 const phones = people.map((row) => row.contact_number);
