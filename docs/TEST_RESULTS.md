@@ -7,13 +7,13 @@ Date: 2026-11-18
 | Test or script | Result | Evidence |
 | --- | --- | --- |
 | `npm test` | PASS | Isolated PostgreSQL database; 21 Vitest/Supertest tests passed |
-| Validation cases | PASS | Bad phone, bad email, invalid purpose, office/service mismatch, future date, and honeypot returned 400 |
+| Validation cases | PASS | Bad phone, invalid purpose, office/service mismatch, future date, and honeypot returned 400 |
 | Role matrix | PASS | Anonymous/front_desk/reviewer/administrator statuses verified for dashboard, forecast, CSM summary, exports, visitors, admin, and import |
-| Audit privacy | PASS | Create, edit, void, import, and export rows written; no contact numbers, emails, or passwords in details |
+| Audit privacy | PASS | Create, edit, void, import, and export rows written; no contact numbers or passwords in details |
 | Dashboard independent SQL check | PASS | Month-end included; independent comparison passed for October 2026 |
 | Import duplicate protection | PASS | Existing and same-file duplicates skipped and reported as `duplicate` |
 | Deactivated cookie rejection | PASS | Deactivated user's old cookie returned 401 |
-| Export privacy | PASS | CSV positive control passed; names, phone numbers, emails, and formula prefixes were absent or neutralized |
+| Export privacy | PASS | CSV positive control passed; names, phone numbers, and formula prefixes were absent or neutralized |
 | `verify-forecast.js` | PASS | Hand-computed model and zero-actual MAPE checks passed |
 | `verify-dashboard.js` | PASS | November: 30/17/13; October: 42/26/15; September: 50/20/27 |
 | `verify-export.js` | PASS | Reviewer 200, front desk 403, anonymous 401, PDF extraction and privacy checks passed |

@@ -46,9 +46,6 @@ const { rows: people } = await pool.query(
    ORDER BY id
    LIMIT 20`,
 );
-const { rows: emails } = await pool.query(
-  'SELECT email FROM csm_responses ORDER BY id LIMIT 5',
-);
 const { rows: comments } = await pool.query(
   `SELECT comment FROM csm_responses
    WHERE btrim(comment) <> ''
@@ -56,7 +53,6 @@ const { rows: comments } = await pool.query(
    LIMIT 40`,
 );
 assert.equal(people.length, 20, 'Expected 20 seeded visitor rows');
-assert.equal(emails.length, 5, 'Expected 5 seeded CSM emails');
 
 const { rows: beforeAudit } = await pool.query(
   `SELECT count(*)::int AS count
@@ -88,10 +84,6 @@ const names = people.map((row) => row.name);
 const phones = people.map((row) => row.contact_number);
 assertNoPersonalData(csvText, names, phones, 'CSV');
 assertNoPersonalData(pdfText, names, phones, 'PDF');
-for (const { email } of emails) {
-  assert(!csvText.includes(email), `CSV contains seeded CSM email: ${email}`);
-  assert(!pdfText.includes(email), `PDF contains seeded CSM email: ${email}`);
-}
 for (const { comment } of comments) {
   assert(!csvText.includes(comment), 'CSV contains seeded CSM comment text');
   assert(!pdfText.includes(comment), 'PDF contains seeded CSM comment text');
@@ -123,7 +115,7 @@ const { rows: auditRows } = await pool.query(
 );
 for (const row of auditRows) {
   const details = JSON.stringify(row.details);
-  assert(!details.includes('@'), 'Export audit details contain an email');
+  assert(!details.includes('@'), 'Export audit details contain an address');
   assert(!PHONE_PATTERN.test(details), 'Export audit details contain a phone number');
 }
 

@@ -102,8 +102,8 @@ if it contains `#` (dotenv treats an unquoted `#` as a comment).
 ## Notes
 
 - All seed data is synthetic. Never load real visitor data into this prototype.
-- Emails and contact numbers are stored server-side; they are never included in
-  dashboard or export payloads.
+- Contact numbers are stored server-side; they are never included in dashboard
+  or export payloads.
 - Public visitor entries are stored with `source = 'public'`, no staff creator,
   and a privacy-safe create audit record.
 - Login, survey submissions, and public visitor submissions are rate-limited.

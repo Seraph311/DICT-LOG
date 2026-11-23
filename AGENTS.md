@@ -23,7 +23,7 @@ users, visitor_logs, csm_responses, lookup lists (purposes, offices external/int
 regions, age_groups), audit_log, import_batches.
 - visitor_logs: id, visit_date, name, gender, purpose, purpose_other, contact_number,
   created_by, created_at, updated_at, voided (boolean). Void, never hard-delete.
-- csm_responses: id, response_date, email (restricted), age_group, sex, gender, region,
+- csm_responses: id, response_date, age_group, sex, gender, region,
   service_type, office, created_at. No link to visitor_logs.
 - audit_log: write a row for every create, edit, void, import, export.
 
@@ -34,7 +34,7 @@ SSS assistance, Others + short description), Contact number (PH mobile format
 09XXXXXXXXX or +639XXXXXXXXX). One Save action (Enter also submits). No
 "click outside the textbox" requirement.
 Dashboard: month selector -> total, male, female, today's visitors.
-CSM: Email, Date, Age (18-25, 26-35, 36-45, 46-60, 60 and above (60 pataas)),
+CSM: Date, Age (18-25, 26-35, 36-45, 46-60, 60 and above (60 pataas)),
 Sex (Male, Female, Prefer not to say), Gender (Masculine, Feminine, Non-Binary,
 Prefer Not to Say, Other), Region (all 17 PH regions), Type of service
 (External/Serbisyong Panlabas or Internal/Serbisyong Panloob), Office:
@@ -52,11 +52,17 @@ assured that all the information that you will share shall remain confidential."
 
 ## Rules
 - Validate on client AND server. Reject out-of-list values.
-- Emails and contact numbers never appear in dashboards or exports; only roles
-  that need them see them.
+- Contact numbers never appear in dashboards or exports; only roles that need
+  them see them.
 - Use only synthetic seed data (Filipino-style fake names, fake numbers). No real data.
 - Small commits per feature. Keep files short and readable. Add comments only where
   needed. Do not add features not listed here.
 - After each task: run the app/tests, report what works and what doesn't.
 - Work on one task at a time. Before coding a task, give a short plan and wait for
   nothing; then implement it.
+
+## Public visitor form (added after Sprint 2)
+Landing page "/" is a public, write-only visitor form (POST /api/visitors/public,
+rate-limited, honeypot, server forces today's Asia/Manila date). visitor_logs has a
+`source` column ('public', 'staff', and later 'import'). Staff log in via the top-right
+button. There must be no public GET, PATCH, or void endpoint.

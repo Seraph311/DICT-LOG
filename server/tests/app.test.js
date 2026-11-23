@@ -34,9 +34,9 @@ afterAll(async () => {
 describe('validation', () => {
   it.each([
     ['/api/visitors/public', { name: 'Bad Phone', gender: 'Male', purpose: 'PSA Appointment', contact_number: '123', website: '' }],
-    ['/api/csm', { response_date: '2026-11-18', email: 'bad', age_group: '18-25', sex: 'Female', gender: 'Feminine', region: 'Bicol Region (Region V)', service_type: 'External/Serbisyong Panlabas', office: 'Cybersecurity Bureau' }],
+    ['/api/csm', { response_date: '2026-11-18', age_group: '18-25', sex: 'Female', gender: 'Feminine', region: 'Bicol Region (Region V)', service_type: 'External/Serbisyong Panlabas', office: 'Cybersecurity Bureau', website: 'filled' }],
     ['/api/visitors/public', { name: 'Bad Purpose', gender: 'Male', purpose: 'Unknown', contact_number: '09171234567', website: '' }],
-    ['/api/csm', { response_date: '2026-11-18', email: 'x@example.com', age_group: '18-25', sex: 'Female', gender: 'Feminine', region: 'Bicol Region (Region V)', service_type: 'External/Serbisyong Panlabas', office: 'Finance Service' }],
+    ['/api/csm', { response_date: '2026-11-18', age_group: '18-25', sex: 'Female', gender: 'Feminine', region: 'Bicol Region (Region V)', service_type: 'External/Serbisyong Panlabas', office: 'Finance Service' }],
     ['/api/visitors', { visit_date: '2999-01-01', name: 'Future', gender: 'Male', purpose: 'PSA Appointment', contact_number: '09171234567' }],
     ['/api/visitors/public', { name: 'Bot', gender: 'Male', purpose: 'PSA Appointment', contact_number: '09171234567', website: 'filled' }],
   ])('%s rejects invalid input', async (path, body) => {
@@ -49,7 +49,6 @@ describe('validation', () => {
   it('rejects missing required CSM fields', async () => {
     const response = await request(app).post('/api/csm').send({
       response_date: '2026-11-18',
-      email: '',
       age_group: '',
       sex: '',
       gender: '',
@@ -63,7 +62,6 @@ describe('validation', () => {
   it('requires text for Other age and gender choices', async () => {
     const response = await request(app).post('/api/csm').send({
       response_date: '2026-11-18',
-      email: 'other@example.com',
       age_group: 'Other',
       age_other: '',
       sex: 'Female',
@@ -79,7 +77,6 @@ describe('validation', () => {
   it('rejects comments over 1000 characters', async () => {
     const response = await request(app).post('/api/csm').send({
       response_date: '2026-11-18',
-      email: 'comment@example.com',
       age_group: '18-25',
       sex: 'Female',
       gender: 'Feminine',
@@ -95,7 +92,6 @@ describe('validation', () => {
     const comment = '<script>EXPORT-COMMENT-SECRET</script>';
     const created = await request(app).post('/api/csm').send({
       response_date: '2026-11-18',
-      email: 'script-comment@example.com',
       age_group: '18-25',
       sex: 'Prefer not to say',
       gender: 'Prefer Not to Say',
@@ -109,6 +105,37 @@ describe('validation', () => {
       .set('Cookie', users.reviewer)
       .expect(200);
     expect(listed.body.data.some((item) => item.comment === comment)).toBe(true);
+  });
+
+  it('has no csm email column and ignores an email key in POST bodies', async () => {
+    const columns = await pool.query(
+      `SELECT count(*)::int AS count
+       FROM information_schema.columns
+       WHERE table_name='csm_responses' AND column_name='email'`,
+    );
+    expect(columns.rows[0].count).toBe(0);
+
+    await request(app).post('/api/csm').send({
+      response_date: '2026-11-18',
+      email: 'ignored@example.com',
+      age_group: '18-25',
+      sex: 'Female',
+      gender: 'Feminine',
+      region: 'Bicol Region (Region V)',
+      service_type: 'External/Serbisyong Panlabas',
+      office: 'Cybersecurity Bureau',
+    }).expect(201);
+    const stored = await pool.query(
+      `SELECT * FROM csm_responses
+       WHERE response_date='2026-11-18'
+         AND age_group='18-25' AND sex='Female'
+         AND gender='Feminine'
+         AND region='Bicol Region (Region V)'
+         AND service_type='External/Serbisyong Panlabas'
+         AND office='Cybersecurity Bureau'
+       ORDER BY id DESC LIMIT 1`,
+    );
+    expect(stored.rows[0]).not.toHaveProperty('email');
   });
 });
 
@@ -193,12 +220,12 @@ describe('audit and data integrity', () => {
 });
 
 describe('export privacy', () => {
-  it('excludes CSM comment text and emails from CSV and PDF exports', async () => {
+  it('excludes CSM comment text from CSV and PDF exports', async () => {
     const comment = 'EXPORT-COMMENT-SECRET-TEST';
     await pool.query(
       `INSERT INTO csm_responses
-       (response_date,email,age_group,sex,gender,region,service_type,office,comment)
-       VALUES ('2026-11-18','export-secret@example.com','18-25','Female','Feminine',
+       (response_date,age_group,sex,gender,region,service_type,office,comment)
+       VALUES ('2026-11-18','18-25','Female','Feminine',
                'Bicol Region (Region V)','External/Serbisyong Panlabas','Cybersecurity Bureau',$1)`,
       [comment],
     );
@@ -215,8 +242,6 @@ describe('export privacy', () => {
     await parser.destroy();
     expect(csv.text).not.toContain(comment);
     expect(parsed.text).not.toContain(comment);
-    expect(csv.text).not.toContain('export-secret@example.com');
-    expect(parsed.text).not.toContain('export-secret@example.com');
     expect(csv.text).toContain('DICT Camarines Norte - Visitor Summary Report');
     expect(parsed.text).toContain('DICT Camarines Norte - Visitor Summary Report');
   });
