@@ -30,16 +30,16 @@ function formatNumber(value) {
   return new Intl.NumberFormat().format(value);
 }
 
-function ChartFrame({ title, children, empty }) {
+function ChartFrame({ title, children, empty, eyebrow = 'Visitor activity', emptyText = 'No visitor records match this range.' }) {
   return (
     <section className="card chart-card">
       <div className="chart-heading">
         <div>
-          <p className="eyebrow">Visitor activity</p>
+          <p className="eyebrow">{eyebrow}</p>
           <h2>{title}</h2>
         </div>
       </div>
-      {empty ? <p className="empty-state">No visitor records match this range.</p> : children}
+      {empty ? <p className="empty-state">{emptyText}</p> : children}
     </section>
   );
 }
@@ -81,11 +81,11 @@ export default function DashboardPage() {
   }, [month, from, to]);
 
   useEffect(() => {
-    if (tab !== 'csm' || csmSummary) return;
-    api('/api/csm/summary')
+    if (tab !== 'csm') return;
+    api(`/api/csm/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
       .then(setCsmSummary)
       .catch((requestError) => setError(requestError.message));
-  }, [tab, csmSummary]);
+  }, [tab, from, to]);
 
   useEffect(() => {
     if (tab !== 'forecast' || forecast) return;
@@ -188,7 +188,7 @@ export default function DashboardPage() {
           aria-selected={tab === 'csm'}
           onClick={() => setTab('csm')}
         >
-          CSM summary
+          Client satisfaction responses (separate from the visitor log)
         </button>
         <button
           type="button"
@@ -265,13 +265,19 @@ export default function DashboardPage() {
         ) : (
           <div className="csm-summary-grid">
             {[
-              ['By service type', csmSummary.byServiceType],
-              ['By office', csmSummary.byOffice],
-              ['By age group', csmSummary.byAgeGroup],
-              ['By region', csmSummary.byRegion],
-              ['By sex', csmSummary.bySex],
+              ['Responses by service type', csmSummary.byServiceType],
+              ['Responses by office', csmSummary.byOffice],
+              ['Responses by age group', csmSummary.byAgeGroup],
+              ['Responses by region', csmSummary.byRegion],
+              ['Responses by sex', csmSummary.bySex],
             ].map(([title, data]) => (
-              <ChartFrame key={title} title={title} empty={!data.length}>
+              <ChartFrame
+                key={title}
+                title={title}
+                eyebrow="Client satisfaction"
+                empty={!data.length}
+                emptyText="No survey responses in this period"
+              >
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={data} layout="vertical" margin={{ left: 18, right: 16 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d7dee9" />

@@ -6,6 +6,7 @@ import { parseOrThrow } from '../lib/validate.js';
 import { writeAudit } from '../lib/audit.js';
 import { csmSchema } from '../validation/csm.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { analyticsSchema } from '../validation/dashboard.js';
 
 const router = Router();
 
@@ -22,25 +23,45 @@ router.get(
   requireAuth,
   requireRole('reviewer', 'administrator'),
   asyncHandler(async (req, res) => {
+    const { from, to } = parseOrThrow(analyticsSchema, req.query);
+    const values = [from, to];
     const [serviceType, office, ageGroup, region, sex] = await Promise.all([
       pool.query(
-        'SELECT service_type AS label, count(*)::int AS count FROM csm_responses GROUP BY service_type ORDER BY service_type',
+        `SELECT service_type AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY service_type ORDER BY service_type`,
+        values,
       ),
       pool.query(
-        'SELECT office AS label, count(*)::int AS count FROM csm_responses GROUP BY office ORDER BY office',
+        `SELECT office AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY office ORDER BY office`,
+        values,
       ),
       pool.query(
-        'SELECT age_group AS label, count(*)::int AS count FROM csm_responses GROUP BY age_group ORDER BY age_group',
+        `SELECT age_group AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY age_group ORDER BY age_group`,
+        values,
       ),
       pool.query(
-        'SELECT region AS label, count(*)::int AS count FROM csm_responses GROUP BY region ORDER BY region',
+        `SELECT region AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY region ORDER BY region`,
+        values,
       ),
       pool.query(
-        'SELECT sex AS label, count(*)::int AS count FROM csm_responses GROUP BY sex ORDER BY sex',
+        `SELECT sex AS label, count(*)::int AS count
+         FROM csm_responses WHERE response_date BETWEEN $1 AND $2
+         GROUP BY sex ORDER BY sex`,
+        values,
       ),
     ]);
 
     res.json({
+      from,
+      to,
+      total: serviceType.rows.reduce((sum, row) => sum + row.count, 0),
       byServiceType: serviceType.rows,
       byOffice: office.rows,
       byAgeGroup: ageGroup.rows,
